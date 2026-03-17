@@ -113,4 +113,23 @@ if [[ "$second_arg" != "status" || "$third_arg" != "--refresh" ]]; then
   exit 1
 fi
 
+cat > "$git_bin_dir/bash.exe" <<'SH'
+#!/bin/bash
+exit 7
+SH
+chmod +x "$git_bin_dir/bash.exe"
+
+set +e
+PATH="$generic_dir:$git_cmd_dir:$PATH" \
+  "$pwsh_bin" -NoLogo -NoProfile -Command "& '$WORKFLOW_WRAPPER' status"
+wrapper_exit=$?
+set -e
+
+if [[ $wrapper_exit -ne 7 ]]; then
+  echo "Expected workflow-status wrapper to preserve nonzero bash exit code"
+  echo "Expected: 7"
+  echo "Actual:   $wrapper_exit"
+  exit 1
+fi
+
 echo "PowerShell wrapper bash-resolution regression test passed."

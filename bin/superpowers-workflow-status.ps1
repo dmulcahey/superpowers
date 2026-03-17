@@ -2,8 +2,26 @@
 
 $bashPath = Get-SuperpowersBashPath
 $bashScript = Convert-SuperpowersPathToBash -Path (Join-Path $PSScriptRoot 'superpowers-workflow-status')
-$output = & $bashPath $bashScript @args
-$exitCode = $LASTEXITCODE
+$output = $null
+$exitCode = 0
+$restoreNativeExitPreference = $false
+$nativeExitPreference = $null
+$nativeExitVariable = Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue
+if ($nativeExitVariable) {
+  $nativeExitPreference = $nativeExitVariable.Value
+  $PSNativeCommandUseErrorActionPreference = $false
+  $restoreNativeExitPreference = $true
+}
+
+try {
+  $output = & $bashPath $bashScript @args
+  $exitCode = $LASTEXITCODE
+}
+finally {
+  if ($restoreNativeExitPreference) {
+    $PSNativeCommandUseErrorActionPreference = $nativeExitPreference
+  }
+}
 
 if ($exitCode -eq 0 -and $null -ne $output) {
   $outputText = if ($output -is [System.Array]) { ($output -join "`n") } else { [string]$output }
@@ -16,4 +34,10 @@ if ($exitCode -eq 0 -and $null -ne $output) {
 if ($null -ne $output) {
   $output
 }
-exit $exitCode
+try {
+  $host.SetShouldExit([int]$exitCode)
+  return
+}
+catch {
+  exit $exitCode
+}
