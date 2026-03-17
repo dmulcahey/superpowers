@@ -190,13 +190,18 @@ Behavior:
 - `status --refresh`
   - Forces reconciliation from current repo docs before returning.
 - `status --summary`
-  - Prints a compact human-readable explanation in addition to, or instead of, JSON. Exact format can be finalized during planning.
+  - Prints a compact human-readable line instead of JSON.
+  - The shipped v1 shape is `status=<status> next=<next-action> spec=<spec-path> plan=<plan-path> reason=<reason>`.
+  - `status --summary` is human-oriented and not the machine-routing surface skills consume.
 - `expect`
   - Records the intended future path for a spec or plan before the file exists.
 - `sync`
   - Reads the actual file, parses authoritative headers, and updates manifest discovery fields.
 - `expect` and `sync`
   - Reject absolute paths, `..` traversal, and any normalized path that resolves outside the repo root.
+- `reason`
+  - `reason` is the canonical diagnostic field in helper JSON output and persisted manifest state.
+  - `note` may remain as a compatibility alias, but it must mirror `reason` exactly.
 
 Exit codes:
 
@@ -245,10 +250,16 @@ earlier_safe_stage
 
 Relevant skills stop treating artifact inspection as purely ad hoc shell logic and instead call the helper first.
 
+Generated skills call `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status`.
+
 ### `using-superpowers`
 
-- Calls `superpowers-workflow-status status --refresh`
-- Uses returned `next_skill` and `reason`
+- Calls `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status status --refresh`
+- If the helper returns a non-empty `next_skill`, use that route.
+- `next_skill` is only used when non-empty.
+- If the helper returns `status` `implementation_ready`, present the normal execution handoff instead of fabricating a pseudo-skill.
+- `implementation_ready` is a terminal status that hands off to execution.
+- Uses returned `reason`
 - Falls back to manual repo inspection only if the helper itself fails
 
 ### `brainstorming`

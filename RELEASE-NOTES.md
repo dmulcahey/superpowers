@@ -33,6 +33,10 @@ For release history before `v5.1.0 (2026-03-16)`, see the upstream README: https
 - Added internal workflow-status helper coverage in runtime docs for `bin/superpowers-workflow-status` and `bin/superpowers-workflow-status.ps1`
 - Documented branch-scoped workflow manifests at `~/.superpowers/projects/<repo-slug>/<user>-<safe-branch>-workflow-state.json`
 - Clarified that workflow-status manifests are local rebuildable indexes while repo docs remain authoritative for approval state
+- Added `status --summary` as a human-oriented one-line helper view while keeping default `status` output JSON for machine consumers
+- Added repo-root mismatch recovery plus bounded cross-slug recovery for existing branch-scoped workflow manifests
+- Added explicit malformed workflow-artifact diagnostics and canonical `reason` helper semantics
+- Reconciled the approved workflow-state runtime docs with the shipped helper contract, including terminal `implementation_ready` handling
 
 ## v5.1.0 (2026-03-16)
 

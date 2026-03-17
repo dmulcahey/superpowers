@@ -24,7 +24,7 @@ description: Use when a Superpowers design spec has been written and needs CEO o
 - After each spec edit (including final approval edits), runs `sync --artifact spec` for the spec path:
 
 ```bash
-superpowers-workflow-status sync --artifact spec --path docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md
+"$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status" sync --artifact spec --path docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md
 ```
 
 - Keep the spec in `Draft` until the review is fully resolved.

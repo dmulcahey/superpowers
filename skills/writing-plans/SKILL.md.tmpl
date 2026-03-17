@@ -21,7 +21,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 - Before writing the plan, record the intended plan path with `expect`:
 
 ```bash
-superpowers-workflow-status expect --artifact plan --path docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md
+"$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status" expect --artifact plan --path docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md
 ```
 
 ## Prerequisite Gate
@@ -142,7 +142,7 @@ After saving the full plan:
 0. After the plan is written or updated, runs `sync --artifact plan`:
 
 ```bash
-superpowers-workflow-status sync --artifact plan --path docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md
+"$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status" sync --artifact plan --path docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md
 ```
 
 1. Invoke `superpowers:plan-eng-review` after saving the full plan.

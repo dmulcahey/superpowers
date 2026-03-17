@@ -334,7 +334,11 @@ Check the git log for this branch. If there are prior commits suggesting a previ
 
 ## Execution handoff
 
-Before presenting the final execution handoff, call `superpowers-workflow-status status --refresh` and use the returned route when available.
+Before presenting the final execution handoff, if `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status` is available, call `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status status --refresh`.
+
+- If the helper returns a non-empty `next_skill`, use that route instead of re-deriving state manually.
+- If the helper returns `status` `implementation_ready`, present the normal execution handoff below.
+- Only fall back to manual artifact inspection if the helper is unavailable or fails.
 
 When the review is resolved and the written plan is approved, present the normal execution handoff.
 

@@ -115,7 +115,7 @@ Slug: lowercase, hyphens, max 60 chars (for example `skill-trigger-missed`). Ski
 - After each spec edit (including final approval edits), runs `sync --artifact spec` for the spec path:
 
 ```bash
-superpowers-workflow-status sync --artifact spec --path docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md
+"$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status" sync --artifact spec --path docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md
 ```
 
 - Keep the spec in `Draft` until the review is fully resolved.

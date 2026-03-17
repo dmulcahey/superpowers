@@ -191,7 +191,7 @@ digraph brainstorming {
 - Before writing the spec, record the intended spec path with `expect`:
 
 ```bash
-superpowers-workflow-status expect --artifact spec --path docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md
+"$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status" expect --artifact spec --path docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md
 ```
 
 - Every spec MUST include these header lines immediately below the title:
@@ -210,7 +210,7 @@ superpowers-workflow-status expect --artifact spec --path docs/superpowers/specs
 - After the spec is written or updated, runs `sync --artifact spec`:
 
 ```bash
-superpowers-workflow-status sync --artifact spec --path docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md
+"$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status" sync --artifact spec --path docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md
 ```
 
 **CEO Review Handoff:**

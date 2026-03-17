@@ -18,7 +18,9 @@ require_pattern skills/brainstorming/SKILL.md "**Workflow State:** Draft"
 require_pattern skills/brainstorming/SKILL.md "**Spec Revision:** 1"
 require_pattern skills/brainstorming/SKILL.md "**Last Reviewed By:** brainstorming"
 require_pattern skills/brainstorming/SKILL.md "record the intended spec path with `expect`"
+require_pattern skills/brainstorming/SKILL.md '"$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status" expect --artifact spec --path'
 require_pattern skills/brainstorming/SKILL.md "runs `sync --artifact spec`"
+require_pattern skills/brainstorming/SKILL.md '"$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status" sync --artifact spec --path'
 
 require_pattern skills/plan-ceo-review/SKILL.md "**Workflow State:** Draft | CEO Approved"
 require_pattern skills/plan-ceo-review/SKILL.md 'If any header line is missing or malformed, normalize the spec to this contract before continuing and treat it as `Draft`.'
@@ -27,6 +29,7 @@ require_pattern skills/plan-ceo-review/SKILL.md "If this review materially chang
 require_pattern skills/plan-ceo-review/SKILL.md '**The terminal state is invoking writing-plans.**'
 require_pattern skills/plan-ceo-review/SKILL.md 'Do not draft a plan or offer implementation options from `plan-ceo-review`.'
 require_pattern skills/plan-ceo-review/SKILL.md "runs `sync --artifact spec`"
+require_pattern skills/plan-ceo-review/SKILL.md '"$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status" sync --artifact spec --path'
 
 require_pattern skills/writing-plans/SKILL.md 'If the spec is missing these lines, or if `**Workflow State:**` is not `CEO Approved`, stop and direct the agent to `superpowers:plan-ceo-review`.'
 require_pattern skills/writing-plans/SKILL.md "**Workflow State:** Draft"
@@ -34,19 +37,24 @@ require_pattern skills/writing-plans/SKILL.md "**Source Spec:** [Exact path to a
 require_pattern skills/writing-plans/SKILL.md "**Source Spec Revision:** [Integer copied from approved spec]"
 require_pattern skills/writing-plans/SKILL.md "**Last Reviewed By:** writing-plans"
 require_pattern skills/writing-plans/SKILL.md "record the intended plan path with `expect`"
+require_pattern skills/writing-plans/SKILL.md '"$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status" expect --artifact plan --path'
 require_pattern skills/writing-plans/SKILL.md "runs `sync --artifact plan`"
+require_pattern skills/writing-plans/SKILL.md '"$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status" sync --artifact plan --path'
 
 require_pattern skills/plan-eng-review/SKILL.md "**Workflow State:** Draft | Engineering Approved"
 require_pattern skills/plan-eng-review/SKILL.md "**Source Spec Revision:** <integer>"
 require_pattern skills/plan-eng-review/SKILL.md 'If the plan'"'"'s `**Source Spec Revision:**` does not match the latest approved spec revision, stop and direct the agent back to `superpowers:writing-plans`.'
 require_pattern skills/plan-eng-review/SKILL.md 'Only write `**Workflow State:** Engineering Approved` as the last step of a successful review'
 require_pattern skills/plan-eng-review/SKILL.md "The handoff must include the exact approved plan path"
-require_pattern skills/plan-eng-review/SKILL.md 'call `superpowers-workflow-status status --refresh`'
+require_pattern skills/plan-eng-review/SKILL.md 'if `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status` is available, call `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status status --refresh`'
+require_pattern skills/plan-eng-review/SKILL.md 'If the helper returns a non-empty `next_skill`, use that route instead of re-deriving state manually.'
+require_pattern skills/plan-eng-review/SKILL.md 'If the helper returns `status` `implementation_ready`, present the normal execution handoff below.'
 
 require_pattern skills/using-superpowers/SKILL.md "## Superpowers Workflow Router"
-require_pattern skills/using-superpowers/SKILL.md 'First, call `superpowers-workflow-status status --refresh` when available.'
-require_pattern skills/using-superpowers/SKILL.md 'If it returns a valid `next_skill`, use that result.'
-require_pattern skills/using-superpowers/SKILL.md "Only fall back to manual artifact inspection if the helper itself fails."
+require_pattern skills/using-superpowers/SKILL.md 'First, if `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status` is available, call `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status status --refresh`.'
+require_pattern skills/using-superpowers/SKILL.md 'If the JSON result contains a non-empty `next_skill`, use that route.'
+require_pattern skills/using-superpowers/SKILL.md 'If the JSON result reports `status` `implementation_ready`, proceed to the normal execution handoff: use `superpowers:subagent-driven-development` when isolated-agent workflows are available in the current platform/session; otherwise use `superpowers:executing-plans`.'
+require_pattern skills/using-superpowers/SKILL.md "Only fall back to manual artifact inspection if the helper itself is unavailable or fails."
 require_pattern skills/using-superpowers/SKILL.md "then follow the artifact-state workflow: plan-ceo-review -> writing-plans -> plan-eng-review -> execution."
 require_pattern skills/using-superpowers/SKILL.md '"Fix this bug" → debugging first, then if it changes Superpowers product or workflow behavior follow the artifact-state workflow; otherwise continue to the appropriate implementation skill.'
 require_pattern skills/using-superpowers/SKILL.md "For feature requests, bugfixes that materially change Superpowers product or workflow behavior, product requests, or workflow-change requests inside a Superpowers project, route by artifact state instead of skipping ahead based on the user's wording alone."
@@ -69,6 +77,16 @@ require_pattern skills/subagent-driven-development/SKILL.md "Do not auto-clean t
 require_pattern README.md 'Workspace preparation is the user'"'"'s responsibility; invoke `using-git-worktrees` manually when you want isolated workspace management.'
 require_pattern docs/README.codex.md 'Workspace preparation is the user'"'"'s responsibility; invoke `using-git-worktrees` manually when you want isolated workspace management.'
 require_pattern docs/README.copilot.md 'Workspace preparation is the user'"'"'s responsibility; invoke `using-git-worktrees` manually when you want isolated workspace management.'
+require_pattern docs/superpowers/specs/2026-03-17-workflow-state-runtime-design.md 'skills call `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status`'
+require_pattern docs/superpowers/specs/2026-03-17-workflow-state-runtime-design.md '`next_skill` is only used when non-empty'
+require_pattern docs/superpowers/specs/2026-03-17-workflow-state-runtime-design.md '`implementation_ready` is a terminal status'
+require_pattern docs/superpowers/specs/2026-03-17-workflow-state-runtime-design.md '`status --summary` is human-oriented'
+require_pattern docs/superpowers/specs/2026-03-17-workflow-state-runtime-design.md '`reason` is the canonical diagnostic field'
+require_pattern docs/superpowers/plans/2026-03-17-workflow-state-runtime.md '`$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status status --refresh`'
+require_pattern docs/superpowers/plans/2026-03-17-workflow-state-runtime.md 'If the helper returns a non-empty `next_skill`, use that route.'
+require_pattern docs/superpowers/plans/2026-03-17-workflow-state-runtime.md 'If the helper returns `status` `implementation_ready`, present the normal execution handoff.'
+require_pattern docs/superpowers/plans/2026-03-17-workflow-state-runtime.md '`status --summary` is human-oriented'
+require_pattern docs/superpowers/plans/2026-03-17-workflow-state-runtime.md '`reason` is the canonical diagnostic field'
 
 WORKFLOW_FIXTURE_DIR="tests/codex-runtime/fixtures/workflow-artifacts"
 

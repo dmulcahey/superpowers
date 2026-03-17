@@ -1,5 +1,19 @@
 # TODOS
 
+## Plan Execution
+
+### Enforce Plan Checklist State During Execution
+
+**What:** Require execution workflows to check plan checklist items off as they are completed and treat stale unchecked steps as a workflow defect.
+
+**Why:** Superpowers plans are written as executable checklists, but that value collapses when completed work is left visually indistinguishable from pending work. The plan should accurately communicate current state across sessions, reviews, and handoffs.
+
+**Context:** The current execution flow often completes implementation, tests, and commits without updating the corresponding `- [ ]` steps in the approved plan. That makes it hard for the user, reviewers, and later agents to tell what is actually done versus what is still pending. A follow-up should update execution skills, review gates, and verification habits so checkbox state is part of the execution contract rather than optional hygiene.
+
+**Effort:** M
+**Priority:** P1
+**Depends on:** None
+
 ## Workflow Runtime
 
 ### Execution Handoff Recommendation Flow

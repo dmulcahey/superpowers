@@ -115,7 +115,7 @@ Runtime state lives in `~/.superpowers/`.
 - Branch-scoped workflow manifests live at `~/.superpowers/projects/<repo-slug>/<user>-<safe-branch>-workflow-state.json`
 - Update-check cache, snooze, and just-upgraded markers live under the same state root
 
-Generated workflow skills call `bin/superpowers-workflow-status` (and `bin/superpowers-workflow-status.ps1` on Windows) as an internal runtime helper to resolve the next workflow stage, including bootstrap states before docs exist. The helper's local manifest is rebuildable; repo docs remain authoritative for spec/plan approval state.
+Generated workflow skills call `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status` (and `bin/superpowers-workflow-status.ps1` on Windows) as an internal runtime helper to resolve the next workflow stage, including bootstrap states before docs exist. Default `status` output is JSON for machine consumers; `status --summary` is a human-oriented one-line view. `reason` is the canonical diagnostic field, and any `note` field is only a compatibility alias. The helper's local manifest is rebuildable; repo docs remain authoritative for spec/plan approval state.
 
 All 18 checked-in `skills/*/SKILL.md` files are generated from adjacent `SKILL.md.tmpl` sources. Regenerate them with `node scripts/gen-skill-docs.mjs` and validate freshness with `node scripts/gen-skill-docs.mjs --check`.
 

@@ -23,9 +23,16 @@ USER_NAME="$(whoami 2>/dev/null || echo user)"
 # bounded refresh -> prefer newest bounded candidate set
 # single retry -> one retry on write conflict, then conservative route
 # expect missing path survives refresh
+# missing manifest path falls forward to a discovered artifact when unambiguous
 # ambiguous fallback routes conservatively with note
 # sync with missing artifact reads actual file state (not expect semantics)
 # expect/sync write conflicts route conservatively after single retry
+# implementation-ready reports terminal status without a fake next skill
+# status --summary is supported and matches JSON status semantics
+# repo identity mismatches recover conservatively with explicit diagnostics
+# manifest state stores repo identity plus canonical reason diagnostics
+# malformed spec/plan headers surface explicit malformed reasons
+# cross-slug recovery respects the bounded 12-candidate lookup budget
 
 require_helper() {
   if [[ ! -x "$STATUS_BIN" ]]; then
@@ -40,6 +47,17 @@ assert_contains() {
   local label="$3"
   if [[ "$output" != *"$expected"* ]]; then
     echo "Expected ${label} output to contain '${expected}'"
+    printf '%s\n' "$output"
+    exit 1
+  fi
+}
+
+assert_not_contains() {
+  local output="$1"
+  local unexpected="$2"
+  local label="$3"
+  if [[ "$output" == *"$unexpected"* ]]; then
+    echo "Expected ${label} output to not contain '${unexpected}'"
     printf '%s\n' "$output"
     exit 1
   fi
@@ -113,6 +131,16 @@ run_command_succeeds() {
   printf '%s\n' "$output"
 }
 
+assert_single_line() {
+  local output="$1"
+  local label="$2"
+  if [[ "$output" == *$'\n'* ]]; then
+    echo "Expected ${label} output to stay on one line"
+    printf '%s\n' "$output"
+    exit 1
+  fi
+}
+
 init_repo() {
   local repo_dir="$1"
   local remote_url="${2:-}"
@@ -131,13 +159,25 @@ init_repo() {
 
 repo_slug_for_manifest() {
   local repo_dir="$1"
+  local repo_root
   local remote_url
   local slug
+  local repo_base
+  local hash
 
+  repo_root="$(git -C "$repo_dir" rev-parse --show-toplevel 2>/dev/null || printf '%s' "$repo_dir")"
   remote_url="$(git -C "$repo_dir" remote get-url origin 2>/dev/null || true)"
   slug="$(printf '%s' "$remote_url" | sed -E 's|.*[:/]+([^/]+/[^/]+)\.git$|\1|; s|.*[:/]+([^/]+/[^/]+)$|\1|')"
   if [[ -z "$slug" || "$slug" == "$remote_url" ]]; then
-    slug="$(basename "$repo_dir")"
+    repo_base="$(basename "$repo_root")"
+    if command -v shasum >/dev/null 2>&1; then
+      hash="$(printf '%s' "$repo_root" | shasum -a 256 | awk '{print substr($1, 1, 12)}')"
+    elif command -v sha256sum >/dev/null 2>&1; then
+      hash="$(printf '%s' "$repo_root" | sha256sum | awk '{print substr($1, 1, 12)}')"
+    else
+      hash="$(printf '%s' "$repo_root" | cksum | awk '{print $1}')"
+    fi
+    slug="${repo_base}-${hash}"
   fi
   printf '%s' "$slug" | tr '/' '-'
 }
@@ -288,6 +328,34 @@ run_expected_path_survives_refresh() {
   run_command_succeeds "$repo" "set expected missing spec path" expect --artifact spec --path "$expected_spec_path" >/dev/null
   output="$(run_status_refresh "$repo" "missing expected spec survives refresh" "superpowers:brainstorming")"
   assert_contains "$output" "$expected_spec_path" "expected missing spec path survives refresh"
+}
+
+run_missing_manifest_path_falls_forward() {
+  local repo="$REPO_DIR/missing-manifest-path-falls-forward"
+  local expected_missing_spec_path="docs/superpowers/specs/2026-03-17-missing-spec-design.md"
+  local actual_spec_path="docs/superpowers/specs/2026-03-17-actual-spec-design.md"
+  local manifest_path
+  local manifest_json
+  local output
+
+  init_repo "$repo"
+  run_command_succeeds "$repo" "set expected missing spec path before discovery" \
+    expect --artifact spec --path "$expected_missing_spec_path" >/dev/null
+  write_file "$repo/$actual_spec_path" <<'EOF'
+# Actual Spec After Missing Manifest Path
+
+**Workflow State:** Draft
+**Spec Revision:** 1
+**Last Reviewed By:** brainstorming
+EOF
+
+  output="$(run_status_refresh "$repo" "missing manifest path falls forward" "superpowers:plan-ceo-review")"
+  assert_contains "$output" "$actual_spec_path" "missing manifest path discovered spec output"
+
+  manifest_path="$(manifest_path_for_branch "$repo")"
+  manifest_json="$(cat "$manifest_path")"
+  assert_contains "$manifest_json" "$actual_spec_path" "missing manifest path discovered spec manifest"
+  assert_not_contains "$manifest_json" "$expected_missing_spec_path" "missing manifest path old manifest entry"
 }
 
 run_ambiguous_fallback_discovery() {
@@ -515,6 +583,212 @@ EOF
   assert_contains "$output" "superpowers:writing-plans" "sync missing plan with approved spec route"
 }
 
+run_status_summary_matches_json() {
+  local repo="$REPO_DIR/status-summary"
+  local spec_path="$repo/docs/superpowers/specs/2026-03-17-summary-design.md"
+  local plan_path="$repo/docs/superpowers/plans/2026-03-17-summary.md"
+  local json_output
+  local summary_output
+
+  init_repo "$repo"
+  write_file "$spec_path" <<'EOF'
+# Summary Spec
+
+**Workflow State:** CEO Approved
+**Spec Revision:** 2
+**Last Reviewed By:** plan-ceo-review
+EOF
+  write_file "$plan_path" <<'EOF'
+# Summary Plan
+
+**Workflow State:** Engineering Approved
+**Source Spec:** `docs/superpowers/specs/2026-03-17-summary-design.md`
+**Source Spec Revision:** 2
+**Last Reviewed By:** plan-eng-review
+EOF
+
+  json_output="$(run_command_succeeds "$repo" "status summary JSON parity" status --refresh)"
+  summary_output="$(run_command_succeeds "$repo" "status summary output" status --refresh --summary)"
+
+  assert_contains "$json_output" '"status":"implementation_ready"' "status summary JSON output"
+  assert_contains "$json_output" '"next_skill":""' "status summary JSON next skill"
+  assert_contains "$json_output" '"reason":"implementation_ready"' "status summary JSON reason"
+
+  assert_single_line "$summary_output" "status summary"
+  assert_not_contains "$summary_output" '{"status"' "status summary"
+  assert_contains "$summary_output" "status=implementation_ready" "status summary status"
+  assert_contains "$summary_output" "next=execution_handoff" "status summary handoff"
+  assert_contains "$summary_output" "spec=docs/superpowers/specs/2026-03-17-summary-design.md" "status summary spec path"
+  assert_contains "$summary_output" "plan=docs/superpowers/plans/2026-03-17-summary.md" "status summary plan path"
+  assert_contains "$summary_output" "reason=implementation_ready" "status summary reason"
+}
+
+run_malformed_spec_headers() {
+  local repo="$REPO_DIR/malformed-spec"
+  local spec_path="$repo/docs/superpowers/specs/2026-03-17-malformed-spec.md"
+  local output
+
+  init_repo "$repo"
+  write_file "$spec_path" <<'EOF'
+# Malformed Spec
+
+**Workflow State:** CEO Approved
+**Last Reviewed By:** plan-ceo-review
+EOF
+
+  output="$(run_command_succeeds "$repo" "malformed spec headers" status --refresh)"
+  assert_contains "$output" '"status":"spec_draft"' "malformed spec status"
+  assert_contains "$output" '"next_skill":"superpowers:plan-ceo-review"' "malformed spec next skill"
+  assert_contains "$output" 'malformed_spec_headers' "malformed spec reason"
+}
+
+run_malformed_plan_headers() {
+  local repo="$REPO_DIR/malformed-plan"
+  local spec_path="$repo/docs/superpowers/specs/2026-03-17-malformed-plan-design.md"
+  local plan_path="$repo/docs/superpowers/plans/2026-03-17-malformed-plan.md"
+  local output
+
+  init_repo "$repo"
+  write_file "$spec_path" <<'EOF'
+# Approved Spec For Malformed Plan
+
+**Workflow State:** CEO Approved
+**Spec Revision:** 1
+**Last Reviewed By:** plan-ceo-review
+EOF
+  write_file "$plan_path" <<'EOF'
+# Malformed Plan
+
+**Workflow State:** Engineering Approved
+**Source Spec:** `docs/superpowers/specs/2026-03-17-malformed-plan-design.md`
+**Last Reviewed By:** plan-eng-review
+EOF
+
+  output="$(run_command_succeeds "$repo" "malformed plan headers" status --refresh)"
+  assert_contains "$output" '"status":"plan_draft"' "malformed plan status"
+  assert_contains "$output" '"next_skill":"superpowers:plan-eng-review"' "malformed plan next skill"
+  assert_contains "$output" 'malformed_plan_headers' "malformed plan reason"
+}
+
+run_repo_root_mismatch_recovery() {
+  local repo_old="$REPO_DIR/repo-root-mismatch-old"
+  local repo_new="$REPO_DIR/repo-root-mismatch-new"
+  local spec_rel="docs/superpowers/specs/2026-03-17-root-mismatch-spec.md"
+  local manifest_path
+  local manifest_json
+  local output
+  local actual_repo_root
+
+  init_repo "$repo_old" "https://example.com/example/workflow-status-root-mismatch.git"
+  write_file "$repo_old/$spec_rel" <<'EOF'
+# Root Mismatch Draft Spec
+
+**Workflow State:** Draft
+**Spec Revision:** 1
+**Last Reviewed By:** brainstorming
+EOF
+  run_command_succeeds "$repo_old" "repo root mismatch bootstrap" status --refresh >/dev/null
+  manifest_path="$(manifest_path_for_branch "$repo_old")"
+
+  mv "$repo_old" "$repo_new"
+  output="$(run_command_succeeds "$repo_new" "repo root mismatch recovery" status --refresh)"
+  assert_contains "$output" '"status":"spec_draft"' "repo root mismatch status"
+  assert_contains "$output" 'repo_root_mismatch' "repo root mismatch reason"
+
+  actual_repo_root="$(git -C "$repo_new" rev-parse --show-toplevel)"
+  manifest_json="$(cat "$manifest_path")"
+  assert_contains "$manifest_json" "\"repo_root\":\"$actual_repo_root\"" "repo root mismatch manifest repo_root update"
+}
+
+run_cross_slug_recovery() {
+  local repo="$REPO_DIR/cross-slug-recovery"
+  local approved_spec="docs/superpowers/specs/2026-03-17-cross-slug-design.md"
+  local expected_plan="docs/superpowers/plans/2026-03-17-cross-slug-plan.md"
+  local old_manifest
+  local new_manifest
+  local manifest_json
+  local output
+
+  init_repo "$repo" "https://example.com/example/workflow-status-old-slug.git"
+  write_file "$repo/$approved_spec" <<'EOF'
+# Cross Slug Approved Spec
+
+**Workflow State:** CEO Approved
+**Spec Revision:** 1
+**Last Reviewed By:** plan-ceo-review
+EOF
+
+  run_command_succeeds "$repo" "cross slug expect missing plan" expect --artifact plan --path "$expected_plan" >/dev/null
+  old_manifest="$(manifest_path_for_branch "$repo")"
+
+  git -C "$repo" remote set-url origin "https://example.com/example/workflow-status-new-slug.git"
+  output="$(run_command_succeeds "$repo" "cross slug recovery" status --refresh)"
+  new_manifest="$(manifest_path_for_branch "$repo")"
+
+  assert_contains "$output" '"status":"spec_approved_needs_plan"' "cross slug recovery status"
+  assert_contains "$output" 'repo_slug_recovered' "cross slug recovery reason"
+  assert_contains "$output" "$expected_plan" "cross slug recovery expected plan path"
+
+  if [[ "$old_manifest" == "$new_manifest" ]]; then
+    echo "Expected remote slug change to produce a new manifest path"
+    echo "old: $old_manifest"
+    echo "new: $new_manifest"
+    exit 1
+  fi
+  if [[ ! -f "$new_manifest" ]]; then
+    echo "Expected recovered manifest to be written at the new slug path"
+    exit 1
+  fi
+  manifest_json="$(cat "$new_manifest")"
+  assert_contains "$manifest_json" "$expected_plan" "cross slug recovery manifest preserves expected plan"
+}
+
+run_cross_slug_recovery_budget_limit() {
+  local repo="$REPO_DIR/cross-slug-budget-limit"
+  local approved_spec="docs/superpowers/specs/2026-03-17-budget-limit-design.md"
+  local expected_plan="docs/superpowers/plans/2026-03-17-budget-limit-plan.md"
+  local branch
+  local safe_branch
+  local repo_root
+  local filename
+  local output
+  local manifest_path
+  local manifest_json
+  local i
+
+  init_repo "$repo" "https://example.com/example/current-budget-slug.git"
+  write_file "$repo/$approved_spec" <<'EOF'
+# Approved Spec For Budget-Limited Recovery
+
+**Workflow State:** CEO Approved
+**Spec Revision:** 1
+**Last Reviewed By:** plan-ceo-review
+EOF
+
+  repo_root="$(git -C "$repo" rev-parse --show-toplevel)"
+  branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD)"
+  safe_branch="$(printf '%s' "$branch" | sed 's#[^A-Za-z0-9._-]#-#g')"
+  filename="${USER_NAME}-${safe_branch}-workflow-state.json"
+
+  for i in 01 02 03 04 05 06 07 08 09 10 11 12; do
+    write_file "$STATE_DIR/projects/decoy-$i/$filename" <<EOF
+{"version":1,"repo_root":"/tmp/not-the-current-repo-$i","branch":"$branch","expected_spec_path":"","expected_plan_path":"","status":"needs_brainstorming","next_skill":"superpowers:brainstorming","reason":"decoy","note":"decoy","updated_at":"2026-03-17T00:00:00Z"}
+EOF
+  done
+
+  write_file "$STATE_DIR/projects/zzz-old-slug/$filename" <<EOF
+{"version":1,"repo_root":"$repo_root","branch":"$branch","expected_spec_path":"$approved_spec","expected_plan_path":"$expected_plan","status":"spec_approved_needs_plan","next_skill":"superpowers:writing-plans","reason":"repo_slug_recovered","note":"repo_slug_recovered","updated_at":"2026-03-17T00:00:00Z"}
+EOF
+
+  output="$(run_command_succeeds "$repo" "cross slug recovery budget limit" status --refresh)"
+  assert_contains "$output" '"status":"spec_approved_needs_plan"' "cross slug budget status"
+  assert_not_contains "$output" "$expected_plan" "cross slug budget should not inspect 13th candidate"
+
+  manifest_path="$(manifest_path_for_branch "$repo")"
+  manifest_json="$(cat "$manifest_path")"
+  assert_not_contains "$manifest_json" "$expected_plan" "cross slug budget manifest should not recover beyond limit"
+}
+
 run_out_of_repo_expect() {
   local repo="$REPO_DIR/out-of-repo-path"
   local outside_path="$REPO_DIR/../../outside.md"
@@ -560,6 +834,48 @@ run_branch_isolated_manifests() {
   fi
 }
 
+run_implementation_ready() {
+  local repo="$REPO_DIR/implementation-ready"
+  local spec_path="$repo/docs/superpowers/specs/2026-03-17-implementation-ready-design.md"
+  local plan_path="$repo/docs/superpowers/plans/2026-03-17-implementation-ready.md"
+  local output
+
+  init_repo "$repo"
+  write_file "$spec_path" <<'EOF'
+# Implementation Ready Spec
+
+**Workflow State:** CEO Approved
+**Spec Revision:** 3
+**Last Reviewed By:** plan-ceo-review
+EOF
+  write_file "$plan_path" <<'EOF'
+# Implementation Ready Plan
+
+**Workflow State:** Engineering Approved
+**Source Spec:** `docs/superpowers/specs/2026-03-17-implementation-ready-design.md`
+**Source Spec Revision:** 3
+**Last Reviewed By:** plan-eng-review
+EOF
+
+  output="$(run_command_succeeds "$repo" "implementation-ready status" status --refresh)"
+  assert_contains "$output" '"status":"implementation_ready"' "implementation-ready status"
+  assert_contains "$output" '"next_skill":""' "implementation-ready empty next_skill"
+  assert_contains "$output" "implementation_ready" "implementation-ready reason"
+
+  local manifest_path
+  local manifest_json
+  local branch
+  local actual_repo_root
+  manifest_path="$(manifest_path_for_branch "$repo")"
+  manifest_json="$(cat "$manifest_path")"
+  branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD)"
+  actual_repo_root="$(git -C "$repo" rev-parse --show-toplevel)"
+  assert_contains "$manifest_json" "\"repo_root\":\"$actual_repo_root\"" "implementation-ready manifest repo_root"
+  assert_contains "$manifest_json" "\"branch\":\"$branch\"" "implementation-ready manifest branch"
+  assert_contains "$manifest_json" '"reason":"implementation_ready"' "implementation-ready manifest canonical reason"
+  assert_contains "$manifest_json" '"note":"implementation_ready"' "implementation-ready manifest compatibility note"
+}
+
 require_helper
 
 run_bootstrap_no_docs
@@ -569,6 +885,7 @@ run_draft_plan
 run_stale_approved_plan
 run_bounded_refresh
 run_expected_path_survives_refresh
+run_missing_manifest_path_falls_forward
 run_ambiguous_fallback_discovery
 run_corrupted_manifest
 run_single_retry_conflict
@@ -578,5 +895,12 @@ run_sync_preserves_manifest_missing_expectation
 run_sync_missing_plan_preserves_stage
 run_out_of_repo_expect
 run_branch_isolated_manifests
+run_status_summary_matches_json
+run_repo_root_mismatch_recovery
+run_cross_slug_recovery
+run_cross_slug_recovery_budget_limit
+run_malformed_spec_headers
+run_malformed_plan_headers
+run_implementation_ready
 
 echo "superpowers-workflow-status regression scaffold passed."

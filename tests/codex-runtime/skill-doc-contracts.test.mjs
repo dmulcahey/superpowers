@@ -75,9 +75,12 @@ test('interactive question contract appears once per generated skill in normaliz
 
 test('workflow sequencing test uses local fixtures instead of historical docs paths', () => {
   const content = readUtf8(path.join(REPO_ROOT, 'tests/codex-runtime/test-workflow-sequencing.sh'));
+  const stripped = content
+    .replace(/^require_pattern docs\/superpowers\/specs\/2026-03-17-workflow-state-runtime-design\.md .*$/gm, '')
+    .replace(/^require_pattern docs\/superpowers\/plans\/2026-03-17-workflow-state-runtime\.md .*$/gm, '');
   assert.match(content, /WORKFLOW_FIXTURE_DIR="tests\/codex-runtime\/fixtures\/workflow-artifacts"/);
-  assert.doesNotMatch(content, /docs\/superpowers\/specs\/2026-/);
-  assert.doesNotMatch(content, /docs\/superpowers\/plans\/2026-/);
+  assert.doesNotMatch(stripped, /docs\/superpowers\/specs\/2026-/);
+  assert.doesNotMatch(stripped, /docs\/superpowers\/plans\/2026-/);
 });
 
 test('workflow-critical skill descriptions encode approval-stage prerequisites', () => {
@@ -116,15 +119,19 @@ test('workflow handoff skills make terminal ownership explicit', () => {
   );
   assert.match(
     usingSuperpowers,
-    /First, call `superpowers-workflow-status status --refresh` when available\./,
+    /First, if `\$_SUPERPOWERS_ROOT\/bin\/superpowers-workflow-status` is available, call `\$_SUPERPOWERS_ROOT\/bin\/superpowers-workflow-status status --refresh`\./,
   );
   assert.match(
     usingSuperpowers,
-    /If it returns a valid `next_skill`, use that result\./,
+    /If the JSON result contains a non-empty `next_skill`, use that route\./,
   );
   assert.match(
     usingSuperpowers,
-    /Only fall back to manual artifact inspection if the helper itself fails\./,
+    /If the JSON result reports `status` `implementation_ready`, proceed to the normal execution handoff: use `superpowers:subagent-driven-development` when isolated-agent workflows are available in the current platform\/session; otherwise use `superpowers:executing-plans`\./,
+  );
+  assert.match(
+    usingSuperpowers,
+    /Only fall back to manual artifact inspection if the helper itself is unavailable or fails\./,
   );
 
   const ceoReview = readUtf8(getSkillPath('plan-ceo-review'));
@@ -135,19 +142,85 @@ test('workflow handoff skills make terminal ownership explicit', () => {
   const engReview = readUtf8(getSkillPath('plan-eng-review'));
   assert.match(engReview, /\*\*The terminal state is presenting the execution handoff with the approved plan path\.\*\*/);
   assert.match(engReview, /Do not start implementation inside `plan-eng-review`\./);
-  assert.match(engReview, /call `superpowers-workflow-status status --refresh`/);
+  assert.match(
+    engReview,
+    /if `\$_SUPERPOWERS_ROOT\/bin\/superpowers-workflow-status` is available, call `\$_SUPERPOWERS_ROOT\/bin\/superpowers-workflow-status status --refresh`/,
+  );
+  assert.match(engReview, /If the helper returns a non-empty `next_skill`, use that route instead of re-deriving state manually\./);
+  assert.match(engReview, /If the helper returns `status` `implementation_ready`, present the normal execution handoff below\./);
 
   const brainstorming = readUtf8(getSkillPath('brainstorming'));
   assert.match(brainstorming, /record the intended spec path with `expect`/);
+  assert.match(brainstorming, /"\$_SUPERPOWERS_ROOT\/bin\/superpowers-workflow-status" expect --artifact spec --path/);
   assert.match(brainstorming, /runs `sync --artifact spec`/);
 
   const writingPlans = readUtf8(getSkillPath('writing-plans'));
   assert.match(writingPlans, /record the intended plan path with `expect`/);
+  assert.match(writingPlans, /"\$_SUPERPOWERS_ROOT\/bin\/superpowers-workflow-status" expect --artifact plan --path/);
   assert.match(writingPlans, /runs `sync --artifact plan`/);
+
+  const ceoReviewWithSyncPath = readUtf8(getSkillPath('plan-ceo-review'));
+  assert.match(ceoReviewWithSyncPath, /"\$_SUPERPOWERS_ROOT\/bin\/superpowers-workflow-status" sync --artifact spec --path/);
 
   const sdd = readUtf8(getSkillPath('subagent-driven-development'));
   assert.match(sdd, /"Have engineering-approved implementation plan\?" \[shape=diamond\];/);
   assert.match(sdd, /"Return to using-superpowers artifact-state routing" \[shape=box\];/);
   assert.match(sdd, /"Have engineering-approved implementation plan\?" -> "Return to using-superpowers artifact-state routing" \[label="no"\];/);
   assert.match(sdd, /"Tasks mostly independent\?" -> "executing-plans" \[label="no - tightly coupled or better handled in one coordinator session"\];/);
+});
+
+test('approved workflow-state artifacts document the finalized helper contract', () => {
+  const specDoc = readUtf8(path.join(REPO_ROOT, 'docs/superpowers/specs/2026-03-17-workflow-state-runtime-design.md'));
+  assert.match(
+    specDoc,
+    /skills call `\$_SUPERPOWERS_ROOT\/bin\/superpowers-workflow-status`/,
+    'approved spec should describe runtime-root-aware helper invocation',
+  );
+  assert.match(
+    specDoc,
+    /`next_skill` is only used when non-empty/,
+    'approved spec should describe non-empty next_skill consumption',
+  );
+  assert.match(
+    specDoc,
+    /`implementation_ready` is a terminal status/,
+    'approved spec should describe implementation_ready as terminal',
+  );
+  assert.match(
+    specDoc,
+    /`status --summary` is human-oriented/,
+    'approved spec should describe summary mode as human-oriented',
+  );
+  assert.match(
+    specDoc,
+    /`reason` is the canonical diagnostic field/,
+    'approved spec should describe canonical reason diagnostics',
+  );
+
+  const planDoc = readUtf8(path.join(REPO_ROOT, 'docs/superpowers/plans/2026-03-17-workflow-state-runtime.md'));
+  assert.match(
+    planDoc,
+    /`\$_SUPERPOWERS_ROOT\/bin\/superpowers-workflow-status status --refresh`/,
+    'approved plan should describe runtime-root-aware helper invocation',
+  );
+  assert.match(
+    planDoc,
+    /If the helper returns a non-empty `next_skill`, use that route\./,
+    'approved plan should describe non-empty next_skill consumption',
+  );
+  assert.match(
+    planDoc,
+    /If the helper returns `status` `implementation_ready`, present the normal execution handoff\./,
+    'approved plan should describe terminal implementation_ready handling',
+  );
+  assert.match(
+    planDoc,
+    /`status --summary` is human-oriented/,
+    'approved plan should describe summary mode as human-oriented',
+  );
+  assert.match(
+    planDoc,
+    /`reason` is the canonical diagnostic field/,
+    'approved plan should describe canonical reason diagnostics',
+  );
 });

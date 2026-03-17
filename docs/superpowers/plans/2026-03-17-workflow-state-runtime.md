@@ -327,6 +327,15 @@ git commit -m "feat: add workflow-status powershell wrapper"
 - Modify: generated `skills/*/SKILL.md` via `node scripts/gen-skill-docs.mjs`
 - Test: `node scripts/gen-skill-docs.mjs --check`
 
+Clarification for the shipped contract:
+
+- Skills call `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status`.
+- First, call `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status status --refresh`.
+- If the helper returns a non-empty `next_skill`, use that route.
+- If the helper returns `status` `implementation_ready`, present the normal execution handoff.
+- `status --summary` is human-oriented, not the routing surface.
+- `reason` is the canonical diagnostic field.
+
 - [ ] **Step 1: Update `using-superpowers` to call the helper before manual artifact inspection**
 
 ```markdown
