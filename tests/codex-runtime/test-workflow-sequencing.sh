@@ -22,6 +22,8 @@ require_pattern skills/plan-ceo-review/SKILL.md "**Workflow State:** Draft | CEO
 require_pattern skills/plan-ceo-review/SKILL.md 'If any header line is missing or malformed, normalize the spec to this contract before continuing and treat it as `Draft`.'
 require_pattern skills/plan-ceo-review/SKILL.md 'When approving the written spec, set `**Workflow State:** CEO Approved`'
 require_pattern skills/plan-ceo-review/SKILL.md "If this review materially changes a previously approved spec, increment the revision"
+require_pattern skills/plan-ceo-review/SKILL.md '**The terminal state is invoking writing-plans.**'
+require_pattern skills/plan-ceo-review/SKILL.md 'Do not draft a plan or offer implementation options from `plan-ceo-review`.'
 
 require_pattern skills/writing-plans/SKILL.md 'If the spec is missing these lines, or if `**Workflow State:**` is not `CEO Approved`, stop and direct the agent to `superpowers:plan-ceo-review`.'
 require_pattern skills/writing-plans/SKILL.md "**Workflow State:** Draft"
@@ -36,6 +38,10 @@ require_pattern skills/plan-eng-review/SKILL.md 'Only write `**Workflow State:**
 require_pattern skills/plan-eng-review/SKILL.md "The handoff must include the exact approved plan path"
 
 require_pattern skills/using-superpowers/SKILL.md "## Superpowers Workflow Router"
+require_pattern skills/using-superpowers/SKILL.md "then follow the artifact-state workflow: plan-ceo-review -> writing-plans -> plan-eng-review -> execution."
+require_pattern skills/using-superpowers/SKILL.md '"Fix this bug" → debugging first, then if it changes Superpowers product or workflow behavior follow the artifact-state workflow; otherwise continue to the appropriate implementation skill.'
+require_pattern skills/using-superpowers/SKILL.md "For feature requests, bugfixes that materially change Superpowers product or workflow behavior, product requests, or workflow-change requests inside a Superpowers project, route by artifact state instead of skipping ahead based on the user's wording alone."
+require_pattern skills/using-superpowers/SKILL.md "Do NOT jump from brainstorming straight to implementation. For workflow-routed work, every stage owns the handoff into the next one."
 require_pattern skills/using-superpowers/SKILL.md 'Spec state: `^\*\*Workflow State:\*\* (Draft|CEO Approved)$`'
 require_pattern skills/using-superpowers/SKILL.md 'Plan source revision: `^\*\*Source Spec Revision:\*\* ([0-9]+)$`'
 require_pattern skills/using-superpowers/SKILL.md "If artifacts are ambiguous or incomplete, route to the earlier safe stage instead of skipping ahead."
@@ -43,7 +49,12 @@ require_pattern skills/using-superpowers/SKILL.md "If artifacts are ambiguous or
 require_pattern skills/executing-plans/SKILL.md "Require the exact approved plan path as input."
 require_pattern skills/executing-plans/SKILL.md "Do not auto-clean the workspace and do not auto-create a worktree."
 require_pattern skills/executing-plans/SKILL.md 'Workspace preparation is the user'"'"'s responsibility; `superpowers:using-git-worktrees` is optional, not automatic'
+require_pattern skills/plan-eng-review/SKILL.md '**The terminal state is presenting the execution handoff with the approved plan path.**'
+require_pattern skills/plan-eng-review/SKILL.md 'Do not start implementation inside `plan-eng-review`.'
 require_pattern skills/subagent-driven-development/SKILL.md "## Implementation Preflight"
+require_pattern skills/subagent-driven-development/SKILL.md "Have engineering-approved implementation plan?"
+require_pattern skills/subagent-driven-development/SKILL.md "Return to using-superpowers artifact-state routing"
+require_pattern skills/subagent-driven-development/SKILL.md 'Tasks mostly independent?" -> "executing-plans" [label="no - tightly coupled or better handled in one coordinator session"]'
 require_pattern skills/subagent-driven-development/SKILL.md "Do not auto-clean the workspace and do not auto-create a worktree."
 
 require_pattern README.md 'Workspace preparation is the user'"'"'s responsibility; invoke `using-git-worktrees` manually when you want isolated workspace management.'

@@ -6,6 +6,7 @@ import {
   SKILLS_DIR,
   listGeneratedSkills,
   readUtf8,
+  parseFrontmatter,
   extractBashBlockUnderHeading,
   extractSection,
   normalizeWhitespace,
@@ -77,4 +78,54 @@ test('workflow sequencing test uses local fixtures instead of historical docs pa
   assert.match(content, /WORKFLOW_FIXTURE_DIR="tests\/codex-runtime\/fixtures\/workflow-artifacts"/);
   assert.doesNotMatch(content, /docs\/superpowers\/specs\/2026-/);
   assert.doesNotMatch(content, /docs\/superpowers\/plans\/2026-/);
+});
+
+test('workflow-critical skill descriptions encode approval-stage prerequisites', () => {
+  const expected = {
+    'writing-plans': /CEO-approved Superpowers spec/,
+    'plan-eng-review': /CEO-approved spec/,
+    'subagent-driven-development': /engineering-approved Superpowers implementation plan/,
+    'executing-plans': /engineering-approved Superpowers implementation plan/,
+  };
+
+  for (const [skill, pattern] of Object.entries(expected)) {
+    const frontmatter = parseFrontmatter(readUtf8(getSkillPath(skill)));
+    assert.ok(frontmatter, `${skill} should have frontmatter`);
+    assert.match(frontmatter.description, pattern, `${skill} description should encode the required workflow gate`);
+  }
+});
+
+test('workflow handoff skills make terminal ownership explicit', () => {
+  const usingSuperpowers = readUtf8(getSkillPath('using-superpowers'));
+  assert.doesNotMatch(usingSuperpowers, /brainstorming first, then implementation skills/);
+  assert.match(
+    usingSuperpowers,
+    /brainstorming first, then follow the artifact-state workflow: plan-ceo-review -> writing-plans -> plan-eng-review -> execution\./,
+  );
+  assert.match(
+    usingSuperpowers,
+    /Do NOT jump from brainstorming straight to implementation\. For workflow-routed work, every stage owns the handoff into the next one\./,
+  );
+  assert.match(
+    usingSuperpowers,
+    /"Fix this bug" → debugging first, then if it changes Superpowers product or workflow behavior follow the artifact-state workflow; otherwise continue to the appropriate implementation skill\./,
+  );
+  assert.match(
+    usingSuperpowers,
+    /For feature requests, bugfixes that materially change Superpowers product or workflow behavior, product requests, or workflow-change requests inside a Superpowers project, route by artifact state instead of skipping ahead based on the user's wording alone\./,
+  );
+
+  const ceoReview = readUtf8(getSkillPath('plan-ceo-review'));
+  assert.match(ceoReview, /\*\*The terminal state is invoking writing-plans\.\*\*/);
+  assert.match(ceoReview, /Do not draft a plan or offer implementation options from `plan-ceo-review`\./);
+
+  const engReview = readUtf8(getSkillPath('plan-eng-review'));
+  assert.match(engReview, /\*\*The terminal state is presenting the execution handoff with the approved plan path\.\*\*/);
+  assert.match(engReview, /Do not start implementation inside `plan-eng-review`\./);
+
+  const sdd = readUtf8(getSkillPath('subagent-driven-development'));
+  assert.match(sdd, /"Have engineering-approved implementation plan\?" \[shape=diamond\];/);
+  assert.match(sdd, /"Return to using-superpowers artifact-state routing" \[shape=box\];/);
+  assert.match(sdd, /"Have engineering-approved implementation plan\?" -> "Return to using-superpowers artifact-state routing" \[label="no"\];/);
+  assert.match(sdd, /"Tasks mostly independent\?" -> "executing-plans" \[label="no - tightly coupled or better handled in one coordinator session"\];/);
 });
