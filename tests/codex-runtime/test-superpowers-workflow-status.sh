@@ -22,6 +22,10 @@ USER_NAME="$(whoami 2>/dev/null || echo user)"
 # same repo slug, different branches/worktrees -> independent manifests
 # bounded refresh -> prefer newest bounded candidate set
 # single retry -> one retry on write conflict, then conservative route
+# expect missing path survives refresh
+# ambiguous fallback routes conservatively with note
+# sync with missing artifact reads actual file state (not expect semantics)
+# expect/sync write conflicts route conservatively after single retry
 
 require_helper() {
   if [[ ! -x "$STATUS_BIN" ]]; then
@@ -92,6 +96,21 @@ run_command_fails() {
     printf '%s\n' "$output"
     exit 1
   fi
+}
+
+run_command_succeeds() {
+  local repo_dir="$1"
+  local label="$2"
+  local output
+  local status=0
+  shift 2
+  output="$(cd "$repo_dir" && "$STATUS_BIN" "$@" 2>&1)" || status=$?
+  if [[ $status -ne 0 ]]; then
+    echo "Expected command to succeed for: $label"
+    printf '%s\n' "$output"
+    exit 1
+  fi
+  printf '%s\n' "$output"
 }
 
 init_repo() {
@@ -251,9 +270,6 @@ EOF
 **Last Reviewed By:** brainstorming
 EOF
 
-  # Seed a stale expected path so refresh is forced to use fallback discovery.
-  (cd "$repo" && "$STATUS_BIN" expect --artifact spec --path "docs/superpowers/specs/missing.md" >/dev/null)
-
   local output
   output="$(run_status_refresh_with_env \
     "$repo" \
@@ -261,6 +277,47 @@ EOF
     "superpowers:plan-ceo-review" \
     "SUPERPOWERS_WORKFLOW_STATUS_FALLBACK_LIMIT=1")"
   assert_contains "$output" "2026-03-17-newest-draft-design.md" "bounded refresh candidate selection"
+}
+
+run_expected_path_survives_refresh() {
+  local repo="$REPO_DIR/expected-path-survives-refresh"
+  local expected_spec_path="docs/superpowers/specs/2026-03-17-missing-spec-design.md"
+  local output
+
+  init_repo "$repo"
+  run_command_succeeds "$repo" "set expected missing spec path" expect --artifact spec --path "$expected_spec_path" >/dev/null
+  output="$(run_status_refresh "$repo" "missing expected spec survives refresh" "superpowers:brainstorming")"
+  assert_contains "$output" "$expected_spec_path" "expected missing spec path survives refresh"
+}
+
+run_ambiguous_fallback_discovery() {
+  local repo="$REPO_DIR/ambiguous-fallback"
+  local spec_a="$repo/docs/superpowers/specs/2026-03-17-spec-a.md"
+  local spec_b="$repo/docs/superpowers/specs/2026-03-17-spec-b.md"
+  local output
+
+  init_repo "$repo"
+  write_file "$spec_a" <<'EOF'
+# Ambiguous Spec A
+
+**Workflow State:** Draft
+**Spec Revision:** 1
+**Last Reviewed By:** brainstorming
+EOF
+  write_file "$spec_b" <<'EOF'
+# Ambiguous Spec B
+
+**Workflow State:** CEO Approved
+**Spec Revision:** 1
+**Last Reviewed By:** plan-ceo-review
+EOF
+
+  output="$(run_status_refresh_with_env \
+    "$repo" \
+    "ambiguous fallback" \
+    "superpowers:plan-ceo-review" \
+    "SUPERPOWERS_WORKFLOW_STATUS_FALLBACK_LIMIT=5")"
+  assert_contains "$output" "ambigu" "ambiguous fallback note"
 }
 
 run_corrupted_manifest() {
@@ -341,6 +398,65 @@ run_single_retry_conflict() {
   fi
 }
 
+run_expect_sync_retry_conflict() {
+  local repo="$REPO_DIR/expect-sync-retry-conflict"
+  local manifest_path
+  local manifest_dir
+  local spec_path_rel="docs/superpowers/specs/2026-03-17-sync-spec.md"
+  local spec_path_abs="$repo/$spec_path_rel"
+  local output_expect
+  local output_sync
+  local status=0
+
+  init_repo "$repo"
+  write_file "$spec_path_abs" <<'EOF'
+# Sync Spec
+
+**Workflow State:** Draft
+**Spec Revision:** 1
+**Last Reviewed By:** brainstorming
+EOF
+
+  run_status_refresh "$repo" "expect/sync conflict bootstrap" "superpowers:plan-ceo-review" >/dev/null
+  manifest_path="$(manifest_path_for_branch "$repo")"
+  manifest_dir="$(dirname "$manifest_path")"
+  chmod u-w "$manifest_dir"
+
+  output_expect="$(cd "$repo" && "$STATUS_BIN" expect --artifact spec --path "$spec_path_rel" 2>&1)" || status=$?
+  if [[ $status -ne 0 ]]; then
+    chmod u+w "$manifest_dir"
+    echo "Expected expect write-conflict fallback to succeed"
+    printf '%s\n' "$output_expect"
+    exit 1
+  fi
+  assert_contains "$output_expect" "retrying once" "expect write-conflict retry warning"
+  assert_contains "$output_expect" "manifest_write_conflict" "expect write-conflict conservative note"
+  assert_contains "$output_expect" "superpowers:brainstorming" "expect write-conflict conservative route"
+
+  status=0
+  output_sync="$(cd "$repo" && "$STATUS_BIN" sync --artifact spec --path "$spec_path_rel" 2>&1)" || status=$?
+  chmod u+w "$manifest_dir"
+  if [[ $status -ne 0 ]]; then
+    echo "Expected sync write-conflict fallback to succeed"
+    printf '%s\n' "$output_sync"
+    exit 1
+  fi
+  assert_contains "$output_sync" "retrying once" "sync write-conflict retry warning"
+  assert_contains "$output_sync" "manifest_write_conflict" "sync write-conflict conservative note"
+  assert_contains "$output_sync" "superpowers:brainstorming" "sync write-conflict conservative route"
+}
+
+run_sync_missing_artifact_behavior() {
+  local repo="$REPO_DIR/sync-missing-artifact"
+  local missing_path="docs/superpowers/specs/2026-03-17-sync-missing-spec.md"
+  local output
+
+  init_repo "$repo"
+  output="$(run_command_succeeds "$repo" "sync missing artifact" sync --artifact spec --path "$missing_path")"
+  assert_contains "$output" "missing_artifact" "sync missing artifact note"
+  assert_contains "$output" "superpowers:brainstorming" "sync missing artifact conservative route"
+}
+
 run_out_of_repo_expect() {
   local repo="$REPO_DIR/out-of-repo-path"
   local outside_path="$REPO_DIR/../../outside.md"
@@ -394,8 +510,12 @@ run_approved_spec_no_plan
 run_draft_plan
 run_stale_approved_plan
 run_bounded_refresh
+run_expected_path_survives_refresh
+run_ambiguous_fallback_discovery
 run_corrupted_manifest
 run_single_retry_conflict
+run_expect_sync_retry_conflict
+run_sync_missing_artifact_behavior
 run_out_of_repo_expect
 run_branch_isolated_manifests
 
