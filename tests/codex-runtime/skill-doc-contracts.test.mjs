@@ -114,14 +114,36 @@ test('workflow handoff skills make terminal ownership explicit', () => {
     usingSuperpowers,
     /For feature requests, bugfixes that materially change Superpowers product or workflow behavior, product requests, or workflow-change requests inside a Superpowers project, route by artifact state instead of skipping ahead based on the user's wording alone\./,
   );
+  assert.match(
+    usingSuperpowers,
+    /First, call `superpowers-workflow-status status --refresh` when available\./,
+  );
+  assert.match(
+    usingSuperpowers,
+    /If it returns a valid `next_skill`, use that result\./,
+  );
+  assert.match(
+    usingSuperpowers,
+    /Only fall back to manual artifact inspection if the helper itself fails\./,
+  );
 
   const ceoReview = readUtf8(getSkillPath('plan-ceo-review'));
   assert.match(ceoReview, /\*\*The terminal state is invoking writing-plans\.\*\*/);
   assert.match(ceoReview, /Do not draft a plan or offer implementation options from `plan-ceo-review`\./);
+  assert.match(ceoReview, /runs `sync --artifact spec`/);
 
   const engReview = readUtf8(getSkillPath('plan-eng-review'));
   assert.match(engReview, /\*\*The terminal state is presenting the execution handoff with the approved plan path\.\*\*/);
   assert.match(engReview, /Do not start implementation inside `plan-eng-review`\./);
+  assert.match(engReview, /call `superpowers-workflow-status status --refresh`/);
+
+  const brainstorming = readUtf8(getSkillPath('brainstorming'));
+  assert.match(brainstorming, /record the intended spec path with `expect`/);
+  assert.match(brainstorming, /runs `sync --artifact spec`/);
+
+  const writingPlans = readUtf8(getSkillPath('writing-plans'));
+  assert.match(writingPlans, /record the intended plan path with `expect`/);
+  assert.match(writingPlans, /runs `sync --artifact plan`/);
 
   const sdd = readUtf8(getSkillPath('subagent-driven-development'));
   assert.match(sdd, /"Have engineering-approved implementation plan\?" \[shape=diamond\];/);

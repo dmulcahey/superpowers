@@ -18,6 +18,11 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
 - (User preferences for plan location override this default)
+- Before writing the plan, record the intended plan path with `expect`:
+
+```bash
+superpowers-workflow-status expect --artifact plan --path docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md
+```
 
 ## Prerequisite Gate
 
@@ -133,6 +138,12 @@ git commit -m "feat: add specific feature"
 ## Plan Review Handoff
 
 After saving the full plan:
+
+0. After the plan is written or updated, runs `sync --artifact plan`:
+
+```bash
+superpowers-workflow-status sync --artifact plan --path docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md
+```
 
 1. Invoke `superpowers:plan-eng-review` after saving the full plan.
 2. Do NOT do chunk-by-chunk embedded review here.
