@@ -1,7 +1,7 @@
 # Workflow State Runtime
-**Workflow State:** Draft
+**Workflow State:** CEO Approved
 **Spec Revision:** 1
-**Last Reviewed By:** brainstorming
+**Last Reviewed By:** plan-ceo-review
 
 ## Summary
 
@@ -27,21 +27,37 @@ This creates an avoidable gap between Superpowers' product promise and the runti
 - Fail closed to the earlier safe stage when repo docs and manifest state disagree.
 - Support lazy backfill for existing repositories with zero explicit migration.
 
-## Non-Goals
+## Not In Scope
 
 - Make local runtime state authoritative over repo-tracked workflow docs.
 - Replace spec and plan header contracts with manifest-only approval semantics.
 - Expand v1 beyond the default product-workflow pipeline (`brainstorming -> plan-ceo-review -> writing-plans -> plan-eng-review -> implementation`).
 - Ship a supported user-facing workflow CLI in this change.
 
+## What Already Exists
+
+- `skills/using-superpowers/SKILL.md` already defines the artifact-state routing contract and exact workflow headers for spec/plan transitions.
+- `bin/superpowers-config`, `bin/superpowers-update-check`, and `bin/superpowers-migrate-install` already establish the runtime-helper pattern this spec should follow.
+- `~/.superpowers/` already stores runtime state for sessions, contributor logs, config, update checks, and project-scoped QA artifacts.
+- `skills/plan-eng-review/SKILL.md` and `skills/qa-only/SKILL.md` already use `~/.superpowers/projects/<repo-slug>/...` artifacts for cross-session handoff.
+- `tests/codex-runtime/fixtures/workflow-artifacts/` already provides deterministic spec/plan fixtures that can be reused for helper behavior tests.
+
+## Dream State Delta
+
+```text
+CURRENT STATE                      THIS SPEC                              12-MONTH IDEAL
+doc parsing only after docs exist  helper + branch-scoped workflow index  durable workflow runtime with
+                                   bootstraps missing artifacts           stable user-facing inspection tools
+```
+
 ## Proposed Architecture
 
 Add two new runtime surfaces:
 
 1. `bin/superpowers-workflow-status`
-2. `~/.superpowers/projects/<repo-slug>/workflow-state.json`
+2. `~/.superpowers/projects/<repo-slug>/<user>-<safe-branch>-workflow-state.json`
 
-The helper binary is the runtime entrypoint. It reads and updates the repo-scoped manifest, inspects any existing workflow docs, and returns the current derived status plus the next safe skill. The manifest is a local index, not the approval record.
+The helper binary is the runtime entrypoint. It reads and updates a branch-scoped manifest for the current repo, inspects any existing workflow docs, and returns the current derived status plus the next safe skill. The manifest is a local index, not the approval record.
 
 Authority split:
 
@@ -50,6 +66,25 @@ Authority split:
 - The manifest may record that a spec or plan path is expected before the file exists.
 - If a spec or plan file exists, the helper reparses the file and treats its headers as authoritative.
 - If the manifest and docs disagree, the helper routes to the earlier safe stage and reports the mismatch.
+
+### System Architecture
+
+```text
+user request
+   |
+   v
+using-superpowers / review skill
+   |
+   v
+superpowers-workflow-status
+   |                    |
+   |                    +--> branch-scoped manifest
+   |                          ~/.superpowers/projects/<slug>/<user>-<safe-branch>-workflow-state.json
+   |
+   +--> repo docs
+         docs/superpowers/specs/*.md
+         docs/superpowers/plans/*.md
+```
 
 ### High-Level Flow
 
@@ -80,7 +115,7 @@ superpowers-workflow-status --refresh
 
 Manifest location:
 
-- `~/.superpowers/projects/<repo-slug>/workflow-state.json`
+- `~/.superpowers/projects/<repo-slug>/<user>-<safe-branch>-workflow-state.json`
 
 Suggested shape:
 
@@ -90,6 +125,10 @@ Suggested shape:
   "repo": {
     "slug": "owner-repo",
     "root": "/abs/path/to/repo"
+  },
+  "branch": {
+    "name": "dm/enhancements",
+    "safe_name": "dm-enhancements"
   },
   "workflow": {
     "kind": "product-change",
@@ -125,6 +164,8 @@ Rules:
 - `workflow.status` is derived and may be rewritten whenever the helper refreshes from docs.
 - `artifacts.spec.path` and `artifacts.plan.path` may be recorded before the corresponding file exists.
 - Artifact paths should be repo-relative for portability; `repo.root` is stored only to identify the current checkout context.
+- The manifest is branch-scoped so concurrent branches or worktrees in the same repo slug do not overwrite each other's workflow state.
+- Manifest writes must be atomic: write to a temp file in the same directory and rename into place.
 - The manifest must remain reconstructable from repo context plus artifact discovery.
 - The manifest must never be the sole source of approval truth.
 
@@ -154,6 +195,8 @@ Behavior:
   - Records the intended future path for a spec or plan before the file exists.
 - `sync`
   - Reads the actual file, parses authoritative headers, and updates manifest discovery fields.
+- `expect` and `sync`
+  - Reject absolute paths, `..` traversal, and any normalized path that resolves outside the repo root.
 
 Exit codes:
 
@@ -171,6 +214,32 @@ Examples:
 - Draft plan exists -> `superpowers:plan-eng-review`
 - Approved plan references stale spec revision -> `superpowers:writing-plans`
 - Approved plan matches current approved spec revision -> implementation handoff
+
+### Workflow State Machine
+
+```text
+needs_brainstorming
+  |
+  v
+spec_draft ----------------------+
+  |                              |
+  v                              |
+spec_approved_needs_plan         |
+  |                              |
+  v                              |
+plan_draft -------------------+  |
+  |                           |  |
+  v                           |  |
+plan_approved_current         |  |
+  |                           |  |
+  v                           |  |
+implementation_ready          |  |
+                              |  |
+malformed_or_ambiguous -------+--+
+      |
+      v
+earlier_safe_stage
+```
 
 ## Skill Integration
 
@@ -216,7 +285,8 @@ The helper must fail closed.
 - If a doc exists but required headers are malformed, treat that doc as draft/malformed and route earlier.
 - If the manifest claims approval but the doc headers do not, the doc wins.
 - If multiple candidate docs exist and the helper cannot determine which one is current, route to the earlier safe stage and explain the ambiguity.
-- If the manifest is corrupted or deleted, rebuild it from current repo context and any discoverable workflow docs.
+- If the manifest is corrupted, move it to a timestamped backup, emit a warning, rebuild a fresh manifest from current repo context and any discoverable workflow docs, and route conservatively for that invocation.
+- If the manifest is deleted, rebuild it from current repo context and any discoverable workflow docs.
 
 ### Reconciliation Flow
 
@@ -242,6 +312,28 @@ manifest present?
                 -> update derived workflow status
 ```
 
+### Error Flow
+
+```text
+helper invocation
+   |
+   +--> corrupted manifest
+   |       -> backup
+   |       -> warn
+   |       -> rebuild
+   |       -> earlier safe stage for this invocation
+   |
+   +--> malformed doc headers
+   |       -> report malformed artifact
+   |       -> treat as draft
+   |       -> earlier safe stage
+   |
+   +--> path escape attempt
+           -> reject input
+           -> do not write manifest state
+           -> surface explicit error
+```
+
 ## Error Handling
 
 Specific failure modes the helper and skills must surface explicitly:
@@ -255,12 +347,90 @@ Specific failure modes the helper and skills must surface explicitly:
 - Multiple candidate plans with no unambiguous current winner
 - Corrupted manifest JSON
 - Repo identity mismatch caused by moved checkout or changed remote slug
+- Rejected path input that attempts to escape the repo root
+- Concurrent manifest write conflict or partial write attempt
 
 User-facing behavior for these cases should remain conservative:
 
 - report the mismatch or malformed state
+- preserve debugging evidence when repairing corrupted local workflow state
 - route to the earlier safe stage
 - avoid silently promoting workflow state
+
+## Error & Rescue Registry
+
+```text
+METHOD/CODEPATH                       | WHAT CAN GO WRONG                           | EXCEPTION / FAILURE CLASS
+--------------------------------------|---------------------------------------------|---------------------------
+workflow-status status --refresh      | manifest missing                            | ManifestMissing
+                                      | manifest JSON invalid                        | ManifestCorrupt
+                                      | spec headers malformed                       | MalformedSpecHeaders
+                                      | plan headers malformed                       | MalformedPlanHeaders
+                                      | spec/plan ambiguity                          | AmbiguousArtifacts
+                                      | repo identity mismatch                       | RepoIdentityMismatch
+workflow-status expect                | path escapes repo root                       | InvalidArtifactPath
+                                      | manifest write conflict                      | ManifestWriteConflict
+workflow-status sync                  | artifact file missing                        | MissingArtifact
+                                      | artifact headers malformed                   | MalformedArtifactHeaders
+                                      | source spec revision stale                   | StaleSourceSpecRevision
+                                      | path escapes repo root                       | InvalidArtifactPath
+```
+
+```text
+EXCEPTION / FAILURE CLASS             | RESCUED? | RESCUE ACTION                                      | USER SEES
+--------------------------------------|----------|----------------------------------------------------|-------------------------------
+ManifestMissing                       | Y        | create bootstrap manifest                          | next safe stage summary
+ManifestCorrupt                       | Y        | backup, warn, rebuild, conservative route          | warning + earlier safe stage
+MalformedSpecHeaders                  | Y        | treat spec as draft/malformed                       | explicit malformed-spec message
+MalformedPlanHeaders                  | Y        | treat plan as draft/malformed                       | explicit malformed-plan message
+AmbiguousArtifacts                    | Y        | do not guess; route earlier                         | explicit ambiguity message
+RepoIdentityMismatch                  | Y        | rebuild using current repo context; warn            | warning + conservative route
+InvalidArtifactPath                   | Y        | reject update, preserve current state               | explicit invalid-path error
+ManifestWriteConflict                 | Y        | retry atomic write once, then conservative route    | warning + retry/conservative route
+MissingArtifact                       | Y        | keep expected path, route earlier                   | missing-artifact message
+StaleSourceSpecRevision               | Y        | route back to writing-plans                         | stale-plan explanation
+```
+
+## Failure Modes Registry
+
+```text
+CODEPATH                              | FAILURE MODE                           | RESCUED? | TEST? | USER SEES?                  | LOGGED?
+--------------------------------------|----------------------------------------|----------|-------|-----------------------------|--------
+status --refresh                      | corrupted manifest JSON                | Y        | Y     | warning + safe-stage route  | Y
+status --refresh                      | malformed spec headers                 | Y        | Y     | malformed-spec message      | Y
+status --refresh                      | malformed plan headers                 | Y        | Y     | malformed-plan message      | Y
+status --refresh                      | ambiguous candidate artifacts          | Y        | Y     | ambiguity message           | Y
+expect                                | path traversal / out-of-repo path      | Y        | Y     | invalid-path error          | Y
+expect / sync                         | concurrent write conflict              | Y        | Y     | warning if retry fails      | Y
+sync --artifact spec|plan             | expected artifact missing              | Y        | Y     | missing-artifact message    | Y
+sync --artifact plan                  | stale source-spec revision             | Y        | Y     | routed back to planning     | Y
+```
+
+## Security & Threat Model
+
+- **Path traversal / local file abuse**
+  - Threat: `expect` or `sync` is given a path outside the repo.
+  - Likelihood: medium.
+  - Impact: high if trusted.
+  - Mitigation: normalize and reject absolute, parent-traversal, or out-of-repo paths.
+
+- **Manifest tampering or corruption**
+  - Threat: local state is edited or truncated and then trusted.
+  - Likelihood: medium.
+  - Impact: medium.
+  - Mitigation: treat the manifest as untrusted cache, preserve corrupted backups, rederive from docs, route conservatively.
+
+- **Cross-branch state clobbering**
+  - Threat: multiple active branches overwrite each other's workflow state.
+  - Likelihood: high without branch scoping.
+  - Impact: medium/high.
+  - Mitigation: branch-scoped manifest paths.
+
+- **Concurrent writes**
+  - Threat: two sessions on the same branch produce partial or stale manifest writes.
+  - Likelihood: medium.
+  - Impact: medium.
+  - Mitigation: atomic same-directory write+rename, retry once on conflict, route conservatively on repeated failure.
 
 ## Testing
 
@@ -279,22 +449,67 @@ Required scenarios:
 - malformed plan headers
 - manifest/doc mismatch
 - corrupted manifest recovery
+- corrupted manifest backup plus warning emission
 - helper-created manifest backfilled from existing valid docs
+- rejection of path traversal or out-of-repo artifact paths
 
 Test strategy:
 
 - use fixture-backed workflow docs for deterministic approval-state scenarios
 - add purpose-built temporary repos for missing-artifact and corruption scenarios
 - extend sequencing tests to assert that workflow-critical skills call the helper before manual inspection
-- add PowerShell wrapper coverage if the helper ships as a public runtime binary on Windows
+- add Bash and PowerShell wrapper coverage in v1 to preserve parity across supported platforms
 
-## Rollout And Migration
+## Observability & Debuggability
+
+- Emit explicit warnings for corrupted-manifest recovery, repo-identity mismatch, and repeated manifest write conflicts.
+- Log helper decisions at a human-readable summary level suitable for debugging routing mistakes.
+- Preserve corrupted-manifest backups for forensic debugging instead of silently discarding them.
+- Include enough context in warnings to identify repo slug, branch, and selected artifact paths without dumping unrelated local state.
+
+## Deployment & Rollout
 
 Rollout principles:
 
 - Ship this as an internal runtime primitive first.
 - Limit v1 to the default product-workflow pipeline.
 - Keep repo docs authoritative and document that clearly.
+- Ship Bash and PowerShell wrapper parity in v1 because the helper sits on the critical path for supported-platform routing.
+
+Rollback posture:
+
+- Revert the helper integration in workflow-critical skills first if routing regresses.
+- Treat the manifest as disposable cache; deleting branch-scoped manifests is a safe rollback aid.
+- Preserve repo docs untouched during rollback so workflow approvals remain visible in git.
+
+### Deployment Sequence
+
+```text
+add helper + wrappers
+   ->
+add helper tests
+   ->
+teach skills to call helper
+   ->
+update docs
+   ->
+validate sequencing + helper suites
+```
+
+### Rollback Flow
+
+```text
+helper regression detected
+   |
+   v
+revert skill integration
+   |
+   v
+delete disposable manifests if needed
+   |
+   v
+fall back to doc-only routing
+```
 
 Migration behavior:
 
@@ -303,6 +518,7 @@ Migration behavior:
 - Existing repos with workflow docs are backfilled from those docs
 - Existing repos without workflow docs start in bootstrap state and route to `superpowers:brainstorming`
 - Deleting the manifest is safe; the helper recreates it
+- Each active branch creates or refreshes its own manifest instead of sharing one repo-level workflow-state file
 
 ## Alternatives Considered
 
@@ -319,8 +535,13 @@ Making the manifest authoritative would create a stronger long-term workflow eng
 - Add a supported user-facing CLI built on the same helper and manifest layer once the internal runtime contract is stable.
 - Consider expanding the manifest pattern to other workflow surfaces only after the product-workflow pipeline proves reliable.
 
+## Stale Diagram Audit
+
+- Existing touched runtime-helper files do not currently contain ASCII diagrams that this spec would invalidate.
+- Existing workflow diagrams in `skills/using-superpowers/SKILL.md` remain conceptually valid because docs stay authoritative and the helper only becomes the runtime mechanism for state resolution.
+
 ## Open Questions For Review
 
 - Should the helper's human-readable summary be stable and documented now, or remain intentionally internal in v1?
 - Should the helper store only the current artifact paths, or preserve a small bounded history of superseded paths for debugging?
-- Should repo identity be keyed only from remote slug, or should the manifest also store a stable repo UUID/fingerprint to handle renamed remotes more gracefully?
+- Should repo identity be keyed only from remote slug plus branch name, or should the manifest also store a stable repo UUID/fingerprint to handle renamed remotes more gracefully?
