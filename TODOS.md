@@ -10,6 +10,8 @@
 
 **Context:** The current execution flow often completes implementation, tests, and commits without updating the corresponding `- [ ]` steps in the approved plan. That makes it hard for the user, reviewers, and later agents to tell what is actually done versus what is still pending. A follow-up should update execution skills, review gates, and verification habits so checkbox state is part of the execution contract rather than optional hygiene.
 
+**Tracking Spec:** `docs/superpowers/specs/2026-03-17-execution-workflow-clarity-design.md`
+
 **Effort:** M
 **Priority:** P1
 **Depends on:** None
@@ -23,6 +25,8 @@
 **Why:** The current handoff exposes both execution paths, but the user still has to infer which one fits the plan's task coupling, session context, and platform capabilities. Superpowers should make an opinionated recommendation instead of pushing that routing analysis back onto the user.
 
 **Context:** The workflow-state runtime work sharpened the distinction between same-session isolated-agent execution and separate-session execution. A follow-up should inspect the approved plan, branch/session state, and task independence, then guide the user into the better option with a short explanation instead of leaving the handoff as a passive choice.
+
+**Tracking Spec:** `docs/superpowers/specs/2026-03-17-execution-workflow-clarity-design.md`
 
 **Effort:** S
 **Priority:** P2
