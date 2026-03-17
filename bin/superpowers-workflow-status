@@ -678,9 +678,9 @@ cmd_sync() {
   if [ -z "$target_path" ] || ! repo_path_exists "$target_path"; then
     missing_artifact=1
     if [ "$artifact" = "spec" ]; then
-      MANIFEST_SPEC_PATH=""
+      MANIFEST_SPEC_PATH="$target_path"
     else
-      MANIFEST_PLAN_PATH=""
+      MANIFEST_PLAN_PATH="$target_path"
     fi
   else
     if [ "$artifact" = "spec" ]; then

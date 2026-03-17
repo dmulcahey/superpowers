@@ -457,6 +457,27 @@ run_sync_missing_artifact_behavior() {
   assert_contains "$output" "superpowers:brainstorming" "sync missing artifact conservative route"
 }
 
+run_sync_preserves_manifest_missing_expectation() {
+  local repo="$REPO_DIR/sync-preserves-manifest-missing"
+  local missing_path="docs/superpowers/specs/2026-03-17-manifest-backed-missing-spec.md"
+  local manifest_path
+  local manifest_json
+  local output
+
+  init_repo "$repo"
+  run_command_succeeds "$repo" "expect missing path for manifest-backed sync" \
+    expect --artifact spec --path "$missing_path" >/dev/null
+
+  output="$(run_command_succeeds "$repo" "sync uses manifest-backed missing path" sync --artifact spec)"
+  assert_contains "$output" "missing_artifact" "manifest-backed sync missing artifact note"
+  assert_contains "$output" "superpowers:brainstorming" "manifest-backed sync conservative route"
+  assert_contains "$output" "$missing_path" "manifest-backed sync output preserves missing path"
+
+  manifest_path="$(manifest_path_for_branch "$repo")"
+  manifest_json="$(cat "$manifest_path")"
+  assert_contains "$manifest_json" "$missing_path" "manifest-backed sync manifest preserves missing path"
+}
+
 run_out_of_repo_expect() {
   local repo="$REPO_DIR/out-of-repo-path"
   local outside_path="$REPO_DIR/../../outside.md"
@@ -516,6 +537,7 @@ run_corrupted_manifest
 run_single_retry_conflict
 run_expect_sync_retry_conflict
 run_sync_missing_artifact_behavior
+run_sync_preserves_manifest_missing_expectation
 run_out_of_repo_expect
 run_branch_isolated_manifests
 
