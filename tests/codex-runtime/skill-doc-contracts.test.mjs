@@ -114,7 +114,11 @@ test('execution workflow skills reference the plan-execution helper contract', (
     assert.match(content, /calls `begin` before starting work on a plan step/);
     assert.match(content, /calls `complete` after each completed step/);
     assert.match(content, /calls `note` when work is interrupted or blocked/);
+    assert.match(content, /The approved plan checklist is the execution progress record; do not create or maintain a separate authoritative task tracker\./);
   }
+  assert.doesNotMatch(readUtf8(getSkillPath('executing-plans')), /track the work in your platform's task checklist/);
+  assert.doesNotMatch(readUtf8(getSkillPath('subagent-driven-development')), /task-tracker checklist/);
+  assert.doesNotMatch(readUtf8(getSkillPath('subagent-driven-development')), /Mark task complete in task tracker/);
 
   const reviewSkill = readUtf8(getSkillPath('requesting-code-review'));
   assert.match(reviewSkill, /rejects final review if the plan has invalid execution state or required unfinished work not truthfully represented/);

@@ -14,6 +14,15 @@ require_pattern() {
   fi
 }
 
+require_absent_pattern() {
+  local file="$1"
+  local pattern="$2"
+  if rg -n -F -- "$pattern" "$file" >/dev/null; then
+    echo "Unexpected workflow sequencing pattern '$pattern' in $file"
+    exit 1
+  fi
+}
+
 require_pattern skills/brainstorming/SKILL.md "**Workflow State:** Draft"
 require_pattern skills/brainstorming/SKILL.md "**Spec Revision:** 1"
 require_pattern skills/brainstorming/SKILL.md "**Last Reviewed By:** brainstorming"
@@ -77,10 +86,15 @@ require_pattern skills/subagent-driven-development/SKILL.md 'calls `status --pla
 require_pattern skills/subagent-driven-development/SKILL.md 'calls `begin` before starting work on a plan step'
 require_pattern skills/subagent-driven-development/SKILL.md 'calls `complete` after each completed step'
 require_pattern skills/subagent-driven-development/SKILL.md 'calls `note` when work is interrupted or blocked'
+require_pattern skills/subagent-driven-development/SKILL.md 'The approved plan checklist is the execution progress record; do not create or maintain a separate authoritative task tracker.'
 require_pattern skills/executing-plans/SKILL.md 'calls `status --plan ...` during preflight'
 require_pattern skills/executing-plans/SKILL.md 'calls `begin` before starting work on a plan step'
 require_pattern skills/executing-plans/SKILL.md 'calls `complete` after each completed step'
 require_pattern skills/executing-plans/SKILL.md 'calls `note` when work is interrupted or blocked'
+require_pattern skills/executing-plans/SKILL.md 'The approved plan checklist is the execution progress record; do not create or maintain a separate authoritative task tracker.'
+require_absent_pattern skills/subagent-driven-development/SKILL.md "task-tracker checklist"
+require_absent_pattern skills/subagent-driven-development/SKILL.md "Mark task complete in task tracker"
+require_absent_pattern skills/executing-plans/SKILL.md "track the work in your platform's task checklist"
 require_pattern skills/requesting-code-review/SKILL.md 'rejects final review if the plan has invalid execution state or required unfinished work not truthfully represented'
 require_pattern skills/requesting-code-review/SKILL.md 'must fail closed when it detects a missed reopen or stale evidence, but must not call `reopen` itself'
 require_pattern skills/finishing-a-development-branch/SKILL.md 'rejects branch-completion handoff if the approved plan is execution-dirty or malformed'
