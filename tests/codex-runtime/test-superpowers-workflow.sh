@@ -345,6 +345,14 @@ EOF
   assert_not_contains "$output" "(expected, missing)" "artifacts from subdir"
 }
 
+run_explain_uses_stable_rerun_command() {
+  local repo="$REPO_DIR/explain-stable-rerun"
+  init_repo "$repo"
+  local output
+  output="$(run_workflow "$repo" "explain stable rerun" explain)"
+  assert_contains "$output" "2. Re-run: superpowers-workflow status" "explain stable rerun"
+}
+
 run_explain_ambiguity() {
   local repo="$REPO_DIR/explain-ambiguity"
   init_repo "$repo"
@@ -690,6 +698,7 @@ run_next_implementation_ready
 run_artifacts_empty
 run_artifacts_expected_missing_plan
 run_artifacts_from_subdir_uses_repo_root
+run_explain_uses_stable_rerun_command
 run_explain_ambiguity
 run_explain_ambiguous_plan
 run_explain_malformed_spec

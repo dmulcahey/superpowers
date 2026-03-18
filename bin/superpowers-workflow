@@ -380,7 +380,7 @@ render_explain() {
   fi
   printf 'What to do:\n'
   printf '1. %s\n' "$(next_text "$status" "$next_skill" "$plan_path")"
-  printf '2. Re-run: %s status\n' "$0"
+  printf '2. Re-run: superpowers-workflow status\n'
   if [ "$debug" -eq 1 ]; then
     render_debug "$resolve_json"
   fi

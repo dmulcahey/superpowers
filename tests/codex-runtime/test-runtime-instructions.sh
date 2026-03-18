@@ -754,3 +754,15 @@ if ! rg -n -F 'node --test tests/brainstorm-server/server.test.js tests/brainsto
 fi
 
 echo "docs/testing.md reflects the current helper and brainstorm-server validation commands."
+
+if sed -n '/^## Workflow Runtime$/,/^## Completed$/p' TODOS.md | rg -n -F '### Supported User-Facing Workflow CLI' >/dev/null; then
+  echo "TODOS.md should not list the shipped workflow CLI under pending Workflow Runtime work."
+  exit 1
+fi
+
+if ! sed -n '/^## Completed$/,$p' TODOS.md | rg -n -F '### Supported User-Facing Workflow CLI' >/dev/null; then
+  echo "TODOS.md should record the shipped workflow CLI under Completed."
+  exit 1
+fi
+
+echo "TODOS.md reflects the shipped workflow CLI state."
