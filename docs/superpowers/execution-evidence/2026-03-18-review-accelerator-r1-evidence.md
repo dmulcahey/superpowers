@@ -544,3 +544,19 @@
 - `git log --oneline -1` -> PASS: recorded commit a501223 docs: document accelerated review workflow
 **Invalidation Reason:** The final execution commit evidence is stale after the repaired accelerated-review contract fixes and rerun verification steps.
 
+#### Attempt 2
+**Status:** Completed
+**Recorded At:** 2026-03-18T19:18:42Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Committed the repaired accelerated-review contract, regenerated skill docs, refreshed sequencing coverage, and updated execution evidence.
+**Files:**
+- docs/superpowers/execution-evidence/2026-03-18-review-accelerator-r1-evidence.md
+- skills/plan-ceo-review/SKILL.md
+- skills/plan-ceo-review/SKILL.md.tmpl
+- skills/plan-eng-review/SKILL.md
+- skills/plan-eng-review/SKILL.md.tmpl
+- tests/codex-runtime/test-workflow-sequencing.sh
+**Verification:**
+- `git log --oneline -1` -> PASS: recorded commit 9929195 fix: tighten accelerated review contract
+**Invalidation Reason:** N/A
+
