@@ -405,9 +405,7 @@ Debug:
 Run: `bash tests/codex-runtime/test-superpowers-workflow.sh`
 Expected: PASS with command-by-state, non-mutation, and debug/failure coverage green.
 
-- [ ] **Step 8: Commit the public bash CLI**
-
-  **Execution Note:** Active - Commit the public bash CLI
+- [x] **Step 8: Commit the public bash CLI**
 ```bash
 git add bin/superpowers-workflow tests/codex-runtime/test-superpowers-workflow.sh
 git commit -m "feat: add public workflow cli"
@@ -421,7 +419,7 @@ git commit -m "feat: add public workflow cli"
 - Modify: `tests/codex-runtime/test-superpowers-workflow.sh`
 - Test: `bash tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh`
 
-- [ ] **Step 1: Add the PowerShell wrapper using the existing shared helper**
+- [x] **Step 1: Add the PowerShell wrapper using the existing shared helper**
 ```powershell
 . (Join-Path $PSScriptRoot 'superpowers-pwsh-common.ps1')
 
@@ -431,14 +429,14 @@ $output = & $bashPath $bashScript @args
 $exitCode = $LASTEXITCODE
 ```
 
-- [ ] **Step 2: Preserve JSON path conversion only where the wrapper is actually returning JSON diagnostics**
+- [x] **Step 2: Preserve JSON path conversion only where the wrapper is actually returning JSON diagnostics**
 ```powershell
 if ($exitCode -eq 0 -and $outputText.TrimStart().StartsWith('{')) {
   $outputText = Convert-SuperpowersJsonFieldPathsToWindows -JsonText $outputText -Fields @('root')
 }
 ```
 
-- [ ] **Step 3: Extend wrapper regression coverage for the new binary**
+- [x] **Step 3: Extend wrapper regression coverage for the new binary**
 ```bash
 # Assert:
 # - wrapper selects Git Bash
@@ -448,11 +446,13 @@ if ($exitCode -eq 0 -and $outputText.TrimStart().StartsWith('{')) {
 # - wrapper exercises one resolved public CLI path and one runtime-failure/debug path
 ```
 
-- [ ] **Step 4: Run the wrapper regression suite**
+- [x] **Step 4: Run the wrapper regression suite**
 Run: `bash tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh`
 Expected: PASS or SKIP with the new `superpowers-workflow.ps1` assertions green on hosts with PowerShell.
 
 - [ ] **Step 5: Commit wrapper parity**
+
+  **Execution Note:** Active - Commit wrapper parity
 ```bash
 git add bin/superpowers-workflow.ps1 tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh tests/codex-runtime/test-superpowers-workflow.sh
 git commit -m "feat: add workflow cli powershell wrapper"

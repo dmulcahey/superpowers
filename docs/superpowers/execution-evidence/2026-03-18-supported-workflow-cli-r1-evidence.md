@@ -295,3 +295,69 @@
 - `bash tests/codex-runtime/test-superpowers-workflow.sh && bash tests/codex-runtime/test-superpowers-workflow-status.sh` -> PASS
 **Invalidation Reason:** N/A
 
+### Task 3 Step 8
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-18T13:14:17Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Committed the public bash workflow CLI implementation.
+**Files:**
+- bin/superpowers-workflow
+- bin/superpowers-workflow-status
+- docs/superpowers/execution-evidence/2026-03-18-supported-workflow-cli-r1-evidence.md
+- docs/superpowers/plans/2026-03-18-supported-workflow-cli.md
+- tests/codex-runtime/test-superpowers-workflow-status.sh
+- tests/codex-runtime/test-superpowers-workflow.sh
+**Verification:**
+- Manual inspection only: Committed Task 3 as f098f34 with the bash CLI, shared resolver refinements, expanded public/runtime coverage, and execution tracking in sync.
+**Invalidation Reason:** N/A
+
+### Task 4 Step 1
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-18T13:16:55Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Added the PowerShell wrapper for the public workflow CLI.
+**Files:**
+- bin/superpowers-workflow.ps1
+**Verification:**
+- Manual inspection only: Manual inspection only: Added a PowerShell shim that resolves Git Bash, invokes the public bash CLI, and preserves native exit handling.
+**Invalidation Reason:** N/A
+
+### Task 4 Step 2
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-18T13:17:10Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Kept JSON path conversion limited to JSON-shaped wrapper output.
+**Files:**
+- bin/superpowers-workflow.ps1
+**Verification:**
+- Manual inspection only: Manual inspection only: The wrapper only attempts Windows path conversion when successful output starts with JSON, so normal human workflow text passes through unchanged.
+**Invalidation Reason:** N/A
+
+### Task 4 Step 3
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-18T13:17:25Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Extended PowerShell wrapper regression coverage for the public workflow CLI.
+**Files:**
+- tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh
+**Verification:**
+- Manual inspection only: Manual inspection only: Added wrapper coverage for public human output, argument forwarding, failure propagation, and debug output preservation.
+**Invalidation Reason:** N/A
+
+### Task 4 Step 4
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-18T13:17:39Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Ran the wrapper regression suite for the new public workflow wrapper.
+**Files:**
+- bin/superpowers-workflow.ps1
+- tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh
+**Verification:**
+- `bash tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh` -> PASS
+**Invalidation Reason:** N/A
+
