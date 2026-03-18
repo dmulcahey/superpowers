@@ -82,7 +82,7 @@ validate_persisted_repo_relative_path() {
   local message="$2"
   local normalized
 
-  normalized="$(normalize_whitespace "$raw_value")"
+  normalized="$(printf '%s' "$raw_value" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
   normalized="$(normalize_repo_relative_path "$normalized")" || {
     set_failure "MalformedExecutionState" "$message"
     return 1

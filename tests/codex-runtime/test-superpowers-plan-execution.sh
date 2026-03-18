@@ -627,6 +627,63 @@ EOF
   run_command_fails "$repo_dir" MalformedExecutionState status --plan "$PLAN_REL" >/dev/null
 }
 
+run_status_accepts_persisted_file_entry_with_repeated_internal_spaces() {
+  local repo_dir="$REPO_DIR/persisted-file-entry-repeated-internal-spaces"
+  local evidence_rel
+  local before
+  local evidence_text
+
+  init_repo "$repo_dir"
+  write_approved_spec "$repo_dir"
+  write_file "$repo_dir/$PLAN_REL" <<EOF
+# Example Execution Plan
+
+**Workflow State:** Engineering Approved
+**Plan Revision:** 1
+**Execution Mode:** superpowers:executing-plans
+**Source Spec:** \`${SPEC_REL}\`
+**Source Spec Revision:** 1
+**Last Reviewed By:** plan-eng-review
+
+## Task 1: Core flow
+
+- [x] **Step 1: Prepare workspace for execution**
+- [ ] **Step 2: Validate the generated output**
+
+## Task 2: Repair flow
+
+- [ ] **Step 1: Repair an invalidated prior step**
+- [ ] **Step 2: Finalize the execution handoff**
+EOF
+  evidence_rel="$(evidence_rel_path "$PLAN_REL" 1)"
+  write_file "$repo_dir/$evidence_rel" <<EOF
+# Execution Evidence: 2026-03-17-example-execution-plan
+
+**Plan Path:** ${PLAN_REL}
+**Plan Revision:** 1
+
+## Step Evidence
+
+### Task 1 Step 1
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-17T14:22:31Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Prepared the workspace for execution.
+**Files:**
+-   docs/foo  bar.md  
+**Verification:**
+- \`bash tests/codex-runtime/test-superpowers-plan-execution.sh\` -> passed in fixture setup
+**Invalidation Reason:** N/A
+EOF
+
+  before="$(run_json_command "$repo_dir" status --plan "$PLAN_REL")"
+  run_json_command "$repo_dir" reopen --plan "$PLAN_REL" --task 1 --step 1 --source superpowers:executing-plans --reason "Need to preserve internal spaces in historical evidence paths" --expect-execution-fingerprint "$(json_value "$before" "execution_fingerprint")" >/dev/null
+
+  evidence_text="$(cat "$repo_dir/$evidence_rel")"
+  assert_contains "$evidence_text" "- docs/foo  bar.md" "repeated internal space persisted file path"
+}
+
 # Approved artifact header contract regressions.
 run_status_rejects_missing_last_reviewed_by_on_approved_plan() {
   local repo_dir="$REPO_DIR/missing-last-reviewed-by-approved-plan"
@@ -1327,6 +1384,7 @@ run_status_rejects_whitespace_only_persisted_invalidation_reason
 run_status_rejects_whitespace_only_persisted_file_entry
 run_status_rejects_traversal_persisted_file_entry
 run_status_rejects_absolute_persisted_file_entry
+run_status_accepts_persisted_file_entry_with_repeated_internal_spaces
 run_status_rejects_missing_last_reviewed_by_on_approved_plan
 run_status_rejects_malformed_last_reviewed_by_on_approved_plan
 run_status_rejects_out_of_range_last_reviewed_by_on_approved_plan
