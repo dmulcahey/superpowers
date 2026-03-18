@@ -2,6 +2,21 @@
 
 For release history before `v5.1.0 (2026-03-16)`, see the upstream README: https://github.com/obra/superpowers/blob/main/README.md
 
+## v5.3.0 (2026-03-17)
+
+### Execution Workflow
+
+- Added `bin/superpowers-plan-execution` plus `bin/superpowers-plan-execution.ps1` to manage execution-ready plan state, recommend the execution skill, and mutate execution progress through `status`, `recommend`, `begin`, `transfer`, `complete`, `note`, and `reopen`
+- Added explicit `**Plan Revision:**` and `**Execution Mode:**` plan headers plus revision-scoped execution evidence artifacts keyed to the exact approved plan path
+- Updated `plan-eng-review` to hand off execution through `superpowers-plan-execution recommend --plan <approved-plan-path>` instead of a top-level isolated-agent shortcut
+- Updated `subagent-driven-development` and `executing-plans` to treat the approved plan checklist as the execution progress record and to drive step state through the helper instead of external task trackers
+- Hardened `requesting-code-review` and `finishing-a-development-branch` so plan-routed final review and branch completion fail closed on malformed execution state, stale evidence, or missed reopen requirements
+
+### Execution Workflow Testing
+
+- Added `tests/codex-runtime/test-superpowers-plan-execution.sh` covering execution-state parsing, evidence canonicalization, recommendation routing, malformed-state rejection, and rollback behavior for failed plan/evidence writes
+- Expanded workflow sequencing and skill-doc contract coverage so the helper-backed execution handoff, final review gate, and branch-finish gate stay aligned across generated skills and reviewer artifacts
+
 ## v5.2.0 (2026-03-16)
 
 ### Workflow Enhancements
