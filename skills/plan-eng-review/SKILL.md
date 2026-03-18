@@ -138,6 +138,10 @@ If the user does not explicitly request accelerated review, run the normal engin
 
 Use the existing ENG review sections defined in this skill as the canonical section boundaries. Accelerated review does not invent a separate section model or a separate workflow stage.
 
+Use `skills/plan-eng-review/accelerated-reviewer-prompt.md` when briefing the accelerated engineering reviewer subagent.
+
+That reviewer prompt, together with `review/review-accelerator-packet-contract.md`, defines the required section-packet schema and keeps the reviewer limited to draft-only output.
+
 ## Accelerated ENG Section Flow
 
 Accelerated engineering review must process one canonical ENG section at a time through a section packet and explicit human section approval.
@@ -192,7 +196,9 @@ Then ask whether the user wants one of three options:
 
 1. **SCOPE REDUCTION:** The plan is overbuilt. Propose a minimal version that achieves the core goal, then review that.
 2. **BIG CHANGE:** Work through interactively, one section at a time: architecture, code quality, tests, performance.
-3. **SMALL CHANGE:** Compressed review. Step 0 plus one combined pass covering all 4 sections. For each section, pick the single most important issue.
+3. **SMALL CHANGE:** In normal non-accelerated review, use a compressed review. Step 0 plus one combined pass covering all 4 sections. For each section, pick the single most important issue.
+
+In accelerated review, `SMALL CHANGE` still uses canonical section packets and per-section approvals; only reviewer depth stays compressed.
 
 Critical: If the user does not select SCOPE REDUCTION, respect that decision fully. Your job becomes making the chosen plan succeed, not continuing to lobby for a smaller plan.
 
@@ -303,7 +309,7 @@ Follow the Interactive User Question format above. Additional rules for plan rev
 * Map the reasoning to the engineering preferences above.
 * Label with issue NUMBER + option LETTER, for example `3A`.
 * **Escape hatch:** If a section has no issues, say so and move on. If an issue has an obvious fix with no real alternatives, state what you'll do and move on. Only use an interactive user question when there is a genuine decision with meaningful tradeoffs.
-* **Exception:** SMALL CHANGE mode intentionally batches one issue per section into a single interactive user question round at the end, but each issue in that batch still requires its own recommendation, WHY, and lettered options.
+* **Exception:** In normal non-accelerated `SMALL CHANGE` mode, batch one issue per section into a single interactive user question round at the end, but each issue in that batch still requires its own recommendation, WHY, and lettered options. Accelerated `SMALL CHANGE` does not use this bundled round.
 
 ## Required outputs
 

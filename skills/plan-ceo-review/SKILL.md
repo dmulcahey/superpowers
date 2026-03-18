@@ -142,6 +142,10 @@ Accelerated CEO review must process one canonical CEO section at a time through 
 
 Use the existing CEO review sections defined in this skill as the canonical section boundaries. Accelerated review does not invent a separate section model or a separate workflow stage.
 
+Use `skills/plan-ceo-review/accelerated-reviewer-prompt.md` when briefing the accelerated CEO reviewer subagent.
+
+That reviewer prompt, together with `review/review-accelerator-packet-contract.md`, defines the required section-packet schema and keeps the reviewer limited to draft-only output.
+
 Persist accelerated CEO section packets under `~/.superpowers/projects/<slug>/...`.
 
 Resume accelerated CEO review only from the last approved-and-applied section boundary.
