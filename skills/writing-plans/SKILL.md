@@ -153,6 +153,8 @@ This structure informs the task decomposition. Each task should produce self-con
 > **For Codex and GitHub Copilot workers:** REQUIRED: Use `superpowers:subagent-driven-development` when isolated-agent workflows are available in the current platform/session; otherwise use `superpowers:executing-plans`. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Workflow State:** Draft
+**Plan Revision:** 1
+**Execution Mode:** none
 **Source Spec:** [Exact path to approved spec]
 **Source Spec Revision:** [Integer copied from approved spec]
 **Last Reviewed By:** writing-plans
@@ -215,6 +217,8 @@ git commit -m "feat: add specific feature"
 - Exact commands with expected output
 - Reference relevant skills by name (for example `superpowers:test-driven-development`)
 - Copy the exact approved spec path and current `Spec Revision` into the plan header
+- New execution plans start at `**Plan Revision:** 1`
+- New execution plans start with `**Execution Mode:** none`
 - DRY, YAGNI, TDD, frequent commits
 
 ## Plan Review Handoff

@@ -40,12 +40,17 @@ require_pattern skills/writing-plans/SKILL.md "record the intended plan path wit
 require_pattern skills/writing-plans/SKILL.md '"$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status" expect --artifact plan --path'
 require_pattern skills/writing-plans/SKILL.md "runs `sync --artifact plan`"
 require_pattern skills/writing-plans/SKILL.md '"$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status" sync --artifact plan --path'
+require_pattern skills/writing-plans/SKILL.md "**Plan Revision:** 1"
+require_pattern skills/writing-plans/SKILL.md "**Execution Mode:** none"
 
 require_pattern skills/plan-eng-review/SKILL.md "**Workflow State:** Draft | Engineering Approved"
 require_pattern skills/plan-eng-review/SKILL.md "**Source Spec Revision:** <integer>"
 require_pattern skills/plan-eng-review/SKILL.md 'If the plan'"'"'s `**Source Spec Revision:**` does not match the latest approved spec revision, stop and direct the agent back to `superpowers:writing-plans`.'
 require_pattern skills/plan-eng-review/SKILL.md 'Only write `**Workflow State:** Engineering Approved` as the last step of a successful review'
 require_pattern skills/plan-eng-review/SKILL.md "The handoff must include the exact approved plan path"
+require_pattern skills/plan-eng-review/SKILL.md 'superpowers-plan-execution recommend --plan <approved-plan-path>'
+require_pattern skills/plan-eng-review/SKILL.md 'Present the helper-recommended execution skill as the default path with the approved plan path.'
+require_pattern skills/plan-eng-review/SKILL.md 'If isolated-agent workflows are unavailable, do not present `superpowers:subagent-driven-development` as an available override.'
 require_pattern skills/plan-eng-review/SKILL.md 'if `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status` is available, call `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status status --refresh`'
 require_pattern skills/plan-eng-review/SKILL.md 'If the helper returns a non-empty `next_skill`, use that route instead of re-deriving state manually.'
 require_pattern skills/plan-eng-review/SKILL.md 'If the helper returns `status` `implementation_ready`, present the normal execution handoff below.'
@@ -53,7 +58,8 @@ require_pattern skills/plan-eng-review/SKILL.md 'If the helper returns `status` 
 require_pattern skills/using-superpowers/SKILL.md "## Superpowers Workflow Router"
 require_pattern skills/using-superpowers/SKILL.md 'First, if `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status` is available, call `$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status status --refresh`.'
 require_pattern skills/using-superpowers/SKILL.md 'If the JSON result contains a non-empty `next_skill`, use that route.'
-require_pattern skills/using-superpowers/SKILL.md 'If the JSON result reports `status` `implementation_ready`, proceed to the normal execution handoff: use `superpowers:subagent-driven-development` when isolated-agent workflows are available in the current platform/session; otherwise use `superpowers:executing-plans`.'
+require_pattern skills/using-superpowers/SKILL.md 'If the JSON result reports `status` `implementation_ready`, proceed to the normal execution handoff using the exact approved plan path.'
+require_pattern skills/using-superpowers/SKILL.md 'Choose between `superpowers:subagent-driven-development` and `superpowers:executing-plans` through the helper-backed execution recommendation contract, not a top-level isolated-agent shortcut.'
 require_pattern skills/using-superpowers/SKILL.md "Only fall back to manual artifact inspection if the helper itself is unavailable or fails."
 require_pattern skills/using-superpowers/SKILL.md "then follow the artifact-state workflow: plan-ceo-review -> writing-plans -> plan-eng-review -> execution."
 require_pattern skills/using-superpowers/SKILL.md '"Fix this bug" → debugging first, then if it changes Superpowers product or workflow behavior follow the artifact-state workflow; otherwise continue to the appropriate implementation skill.'
@@ -62,10 +68,23 @@ require_pattern skills/using-superpowers/SKILL.md "Do NOT jump from brainstormin
 require_pattern skills/using-superpowers/SKILL.md 'Spec state: `^\*\*Workflow State:\*\* (Draft|CEO Approved)$`'
 require_pattern skills/using-superpowers/SKILL.md 'Plan source revision: `^\*\*Source Spec Revision:\*\* ([0-9]+)$`'
 require_pattern skills/using-superpowers/SKILL.md "If artifacts are ambiguous or incomplete, route to the earlier safe stage instead of skipping ahead."
+require_pattern skills/using-superpowers/SKILL.md 'Plan is `Engineering Approved` and matches the latest approved spec revision: proceed to implementation through the normal execution handoff for that approved plan path.'
 
 require_pattern skills/executing-plans/SKILL.md "Require the exact approved plan path as input."
 require_pattern skills/executing-plans/SKILL.md "Do not auto-clean the workspace and do not auto-create a worktree."
 require_pattern skills/executing-plans/SKILL.md 'Workspace preparation is the user'"'"'s responsibility; `superpowers:using-git-worktrees` is optional, not automatic'
+require_pattern skills/subagent-driven-development/SKILL.md 'calls `status --plan ...` during preflight'
+require_pattern skills/subagent-driven-development/SKILL.md 'calls `begin` before starting work on a plan step'
+require_pattern skills/subagent-driven-development/SKILL.md 'calls `complete` after each completed step'
+require_pattern skills/subagent-driven-development/SKILL.md 'calls `note` when work is interrupted or blocked'
+require_pattern skills/executing-plans/SKILL.md 'calls `status --plan ...` during preflight'
+require_pattern skills/executing-plans/SKILL.md 'calls `begin` before starting work on a plan step'
+require_pattern skills/executing-plans/SKILL.md 'calls `complete` after each completed step'
+require_pattern skills/executing-plans/SKILL.md 'calls `note` when work is interrupted or blocked'
+require_pattern skills/requesting-code-review/SKILL.md 'rejects final review if the plan has invalid execution state or required unfinished work not truthfully represented'
+require_pattern skills/requesting-code-review/SKILL.md 'must fail closed when it detects a missed reopen or stale evidence, but must not call `reopen` itself'
+require_pattern skills/finishing-a-development-branch/SKILL.md 'rejects branch-completion handoff if the approved plan is execution-dirty or malformed'
+require_pattern skills/finishing-a-development-branch/SKILL.md 'must not allow branch completion while any checked-off plan step still lacks semantic implementation evidence'
 require_pattern skills/plan-eng-review/SKILL.md '**The terminal state is presenting the execution handoff with the approved plan path.**'
 require_pattern skills/plan-eng-review/SKILL.md 'Do not start implementation inside `plan-eng-review`.'
 require_pattern skills/subagent-driven-development/SKILL.md "## Implementation Preflight"

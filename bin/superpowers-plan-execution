@@ -65,11 +65,17 @@ normalize_repo_relative_path() {
 validate_persisted_normalized_text() {
   local raw_value="$1"
   local message="$2"
+  local overlong_message="${3:-}"
+  local max_len="${4:-}"
   local normalized
 
   normalized="$(normalize_whitespace "$raw_value")"
   if [[ -z "$normalized" ]]; then
     set_failure "MalformedExecutionState" "$message"
+    return 1
+  fi
+  if [[ -n "$max_len" ]] && (( ${#normalized} > max_len )); then
+    set_failure "MalformedExecutionState" "$overlong_message"
     return 1
   fi
 
@@ -89,6 +95,28 @@ validate_persisted_repo_relative_path() {
   }
 
   PERSISTED_NORMALIZED_PATH="$normalized"
+  return 0
+}
+
+validate_persisted_execution_source() {
+  local raw_value="$1"
+  local normalized
+
+  normalized="$(normalize_whitespace "$raw_value")"
+  case "$normalized" in
+    superpowers:executing-plans|superpowers:subagent-driven-development) ;;
+    *)
+      set_failure "MalformedExecutionState" "Execution evidence source must be one of the supported execution modes."
+      return 1
+      ;;
+  esac
+
+  if [[ "$PLAN_EXECUTION_MODE" != "none" && "$normalized" != "$PLAN_EXECUTION_MODE" ]]; then
+    set_failure "MalformedExecutionState" "Execution evidence source must exactly match the persisted execution mode for this plan revision."
+    return 1
+  fi
+
+  PERSISTED_EXECUTION_SOURCE="$normalized"
   return 0
 }
 
@@ -221,7 +249,9 @@ parse_plan_file() {
 
       validate_persisted_normalized_text \
         "$note_summary" \
-        "Execution note summaries may not be blank after whitespace normalization." || return 1
+        "Execution note summaries may not be blank after whitespace normalization." \
+        "Execution note summaries may not exceed 120 characters after whitespace normalization." \
+        120 || return 1
       STEP_NOTE_STATES[$pending_index]="$note_state"
       STEP_NOTE_SUMMARIES[$pending_index]="$PERSISTED_NORMALIZED_VALUE"
       PLAN_NOTE_COUNT=$((PLAN_NOTE_COUNT + 1))
@@ -328,7 +358,6 @@ parse_evidence_file() {
   local expected_plan_rel="$2"
   local expected_revision="$3"
   local title_count path_count revision_count section_count step_section_count attempt_count
-  local source sources source_count
 
   reset_evidence_parse_state
   if [[ ! -f "$evidence_abs" ]]; then
@@ -370,24 +399,6 @@ parse_evidence_file() {
 
   EVIDENCE_EMPTY_STATE=0
   EVIDENCE_ATTEMPT_COUNT="$attempt_count"
-
-  sources="$(sed -nE 's/^\*\*Execution Source:\*\* (.+)$/\1/p' "$evidence_abs" | sed '/^$/d' | sort -u)"
-  source_count=0
-  while IFS= read -r source; do
-    [[ -n "$source" ]] || continue
-    source_count=$((source_count + 1))
-    if [[ $source_count -eq 1 ]]; then
-      EVIDENCE_SOURCE_ONE="$source"
-    elif [[ $source_count -eq 2 ]]; then
-      EVIDENCE_SOURCE_TWO="$source"
-    fi
-  done <<< "$sources"
-  EVIDENCE_SOURCE_COUNT="$source_count"
-
-  if (( EVIDENCE_SOURCE_COUNT > 1 )); then
-    set_failure "MalformedExecutionState" "Execution evidence contains multiple distinct persisted execution sources for one revision."
-    return 1
-  fi
 
   return 0
 }
@@ -685,7 +696,21 @@ parse_evidence_attempts() {
       expected_stage=3
     elif [[ -n "$current_index" && "$line" =~ ^\*\*Execution\ Source:\*\*\ (.+)$ ]]; then
       [[ $expected_stage -eq 3 ]] || { exec 3<&-; set_failure "MalformedExecutionState" "Execution evidence fields are out of order."; return 1; }
-      ATT_SOURCES[$current_index]="${BASH_REMATCH[1]}"
+      validate_persisted_execution_source "${BASH_REMATCH[1]}" || {
+        exec 3<&-
+        return 1
+      }
+      ATT_SOURCES[$current_index]="$PERSISTED_EXECUTION_SOURCE"
+      if [[ "$EVIDENCE_SOURCE_COUNT" == "0" ]]; then
+        EVIDENCE_SOURCE_COUNT=1
+        EVIDENCE_SOURCE_ONE="$PERSISTED_EXECUTION_SOURCE"
+      elif [[ "$PERSISTED_EXECUTION_SOURCE" != "$EVIDENCE_SOURCE_ONE" ]]; then
+        EVIDENCE_SOURCE_COUNT=2
+        EVIDENCE_SOURCE_TWO="$PERSISTED_EXECUTION_SOURCE"
+        exec 3<&-
+        set_failure "MalformedExecutionState" "Execution evidence contains multiple distinct persisted execution sources for one revision."
+        return 1
+      fi
       expected_stage=4
     elif [[ -n "$current_index" && "$line" =~ ^\*\*Claim:\*\*\ (.+)$ ]]; then
       [[ $expected_stage -eq 4 ]] || { exec 3<&-; set_failure "MalformedExecutionState" "Execution evidence fields are out of order."; return 1; }
@@ -1109,10 +1134,6 @@ load_execution_state() {
       set_failure "PlanNotExecutionReady" "Newly approved plan revisions must start execution-clean."
       return 1
     fi
-  fi
-
-  if [[ "$PLAN_EXECUTION_MODE" != "none" && "$EVIDENCE_SOURCE_COUNT" == "1" ]]; then
-    :
   fi
 
   if [[ "$PLAN_EXECUTION_MODE" == "none" ]]; then

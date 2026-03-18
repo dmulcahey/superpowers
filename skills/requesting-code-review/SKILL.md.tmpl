@@ -102,6 +102,12 @@ You: [Fix progress indicators]
 - Review before merge
 - Review when stuck
 
+## Execution-State Gate
+
+- rejects final review if the plan has invalid execution state or required unfinished work not truthfully represented
+- consumes the execution evidence artifact for checked-off steps
+- must fail closed when it detects a missed reopen or stale evidence, but must not call `reopen` itself
+
 ## Red Flags
 
 **Never:**

@@ -98,6 +98,33 @@ test('workflow-critical skill descriptions encode approval-stage prerequisites',
   }
 });
 
+test('execution workflow skills reference the plan-execution helper contract', () => {
+  const planEngReview = readUtf8(getSkillPath('plan-eng-review'));
+  assert.match(planEngReview, /superpowers-plan-execution recommend --plan <approved-plan-path>/);
+  assert.match(planEngReview, /Present the helper-recommended execution skill as the default path with the approved plan path\./);
+  assert.match(planEngReview, /If isolated-agent workflows are unavailable, do not present `superpowers:subagent-driven-development` as an available override\./);
+
+  const writingPlans = readUtf8(getSkillPath('writing-plans'));
+  assert.match(writingPlans, /\*\*Plan Revision:\*\* 1/);
+  assert.match(writingPlans, /\*\*Execution Mode:\*\* none/);
+
+  for (const skill of ['subagent-driven-development', 'executing-plans']) {
+    const content = readUtf8(getSkillPath(skill));
+    assert.match(content, /calls `status --plan \.\.\.` during preflight/);
+    assert.match(content, /calls `begin` before starting work on a plan step/);
+    assert.match(content, /calls `complete` after each completed step/);
+    assert.match(content, /calls `note` when work is interrupted or blocked/);
+  }
+
+  const reviewSkill = readUtf8(getSkillPath('requesting-code-review'));
+  assert.match(reviewSkill, /rejects final review if the plan has invalid execution state or required unfinished work not truthfully represented/);
+  assert.match(reviewSkill, /must fail closed when it detects a missed reopen or stale evidence, but must not call `reopen` itself/);
+
+  const finishSkill = readUtf8(getSkillPath('finishing-a-development-branch'));
+  assert.match(finishSkill, /rejects branch-completion handoff if the approved plan is execution-dirty or malformed/);
+  assert.match(finishSkill, /must not allow branch completion while any checked-off plan step still lacks semantic implementation evidence/);
+});
+
 test('workflow handoff skills make terminal ownership explicit', () => {
   const usingSuperpowers = readUtf8(getSkillPath('using-superpowers'));
   assert.doesNotMatch(usingSuperpowers, /brainstorming first, then implementation skills/);
@@ -127,11 +154,19 @@ test('workflow handoff skills make terminal ownership explicit', () => {
   );
   assert.match(
     usingSuperpowers,
-    /If the JSON result reports `status` `implementation_ready`, proceed to the normal execution handoff: use `superpowers:subagent-driven-development` when isolated-agent workflows are available in the current platform\/session; otherwise use `superpowers:executing-plans`\./,
+    /If the JSON result reports `status` `implementation_ready`, proceed to the normal execution handoff using the exact approved plan path\./,
+  );
+  assert.match(
+    usingSuperpowers,
+    /Choose between `superpowers:subagent-driven-development` and `superpowers:executing-plans` through the helper-backed execution recommendation contract, not a top-level isolated-agent shortcut\./,
   );
   assert.match(
     usingSuperpowers,
     /Only fall back to manual artifact inspection if the helper itself is unavailable or fails\./,
+  );
+  assert.match(
+    usingSuperpowers,
+    /Plan is `Engineering Approved` and matches the latest approved spec revision: proceed to implementation through the normal execution handoff for that approved plan path\./,
   );
 
   const ceoReview = readUtf8(getSkillPath('plan-ceo-review'));

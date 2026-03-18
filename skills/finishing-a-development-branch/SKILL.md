@@ -130,6 +130,14 @@ If a fresh review has not already been resolved for the current diff, invoke `su
 - Resolve Important issues unless the user explicitly accepts the risk
 - If a fresh review already happened in the current workflow, continue silently
 
+### Step 1.6: Execution-State Gate
+
+Before presenting completion options:
+
+- rejects branch-completion handoff if the approved plan is execution-dirty or malformed
+- must not allow branch completion while any checked-off plan step still lacks semantic implementation evidence
+- must fail closed when it detects a missed reopen or stale evidence, but must not call `reopen` itself
+
 ### Step 1.75: Optional Pre-Landing QA Gate
 
 Before presenting completion options, look for a branch-specific QA handoff artifact:

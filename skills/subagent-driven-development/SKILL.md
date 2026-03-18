@@ -191,6 +191,15 @@ Before dispatching any implementation subagent:
    - if the working tree is dirty, stop and ask the user to confirm the workspace is intentionally prepared
 6. Do not auto-clean the workspace and do not auto-create a worktree.
 
+## Helper-Owned Execution State
+
+- calls `status --plan ...` during preflight
+- calls `begin` before starting work on a plan step
+- calls `complete` after each completed step
+- calls `note` when work is interrupted or blocked
+- On the first `begin` for a revision whose plan still says `**Execution Mode:** none`, initialize execution with `--execution-mode superpowers:subagent-driven-development`
+- The approved plan remains the authoritative execution-state record; do not treat a side task tracker as the source of truth for what is complete or resumable.
+
 ## Model Selection
 
 Use the least powerful model that can handle each role to conserve cost and increase speed.

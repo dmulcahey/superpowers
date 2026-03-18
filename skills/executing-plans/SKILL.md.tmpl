@@ -37,6 +37,15 @@ Load plan, review critically, execute all tasks in a separate session, request f
 7. Do not auto-clean the workspace and do not auto-create a worktree.
 8. If preflight passes, review the plan critically for execution concerns and then track the work in your platform's task checklist.
 
+## Helper-Owned Execution State
+
+- calls `status --plan ...` during preflight
+- calls `begin` before starting work on a plan step
+- calls `complete` after each completed step
+- calls `note` when work is interrupted or blocked
+- On the first `begin` for a revision whose plan still says `**Execution Mode:** none`, initialize execution with `--execution-mode superpowers:executing-plans`
+- The approved plan remains the authoritative execution-state record; do not rely on a side checklist to decide which step is active, interrupted, or complete.
+
 ### Step 2: Execute Tasks
 
 For each task:

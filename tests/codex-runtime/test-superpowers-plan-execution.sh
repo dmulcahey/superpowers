@@ -427,6 +427,99 @@ EOF
   run_command_fails "$repo_dir" MalformedExecutionState status --plan "$PLAN_REL"
 }
 
+run_status_rejects_overlong_execution_note_summary() {
+  local repo_dir="$REPO_DIR/overlong-execution-note-summary"
+  local long_summary
+
+  init_repo "$repo_dir"
+  write_approved_spec "$repo_dir"
+  long_summary="$(printf 'x%.0s' {1..121})"
+  write_file "$repo_dir/$PLAN_REL" <<EOF
+# Example Execution Plan
+
+**Workflow State:** Engineering Approved
+**Plan Revision:** 1
+**Execution Mode:** superpowers:executing-plans
+**Source Spec:** \`${SPEC_REL}\`
+**Source Spec Revision:** 1
+**Last Reviewed By:** plan-eng-review
+
+## Task 1: Core flow
+
+- [ ] **Step 1: Prepare workspace for execution**
+
+  **Execution Note:** Blocked - ${long_summary}
+
+- [ ] **Step 2: Validate the generated output**
+EOF
+
+  run_command_fails "$repo_dir" MalformedExecutionState status --plan "$PLAN_REL"
+}
+
+run_status_rejects_out_of_range_persisted_execution_source() {
+  local repo_dir="$REPO_DIR/out-of-range-persisted-execution-source"
+  local evidence_rel
+
+  init_repo "$repo_dir"
+  write_approved_spec "$repo_dir"
+  write_plan "$repo_dir" "superpowers:executing-plans"
+  evidence_rel="$(evidence_rel_path "$PLAN_REL" 1)"
+  write_file "$repo_dir/$evidence_rel" <<EOF
+# Execution Evidence: 2026-03-17-example-execution-plan
+
+**Plan Path:** ${PLAN_REL}
+**Plan Revision:** 1
+
+## Step Evidence
+
+### Task 1 Step 1
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-17T14:22:31Z
+**Execution Source:** plan-eng-review
+**Claim:** Prepared the workspace for execution.
+**Files:**
+- docs/example-output.md
+**Verification:**
+- \`bash tests/codex-runtime/test-superpowers-plan-execution.sh\` -> passed in fixture setup
+**Invalidation Reason:** N/A
+EOF
+
+  run_command_fails "$repo_dir" MalformedExecutionState status --plan "$PLAN_REL" >/dev/null
+}
+
+run_status_rejects_persisted_execution_source_mismatch() {
+  local repo_dir="$REPO_DIR/persisted-execution-source-mismatch"
+  local evidence_rel
+
+  init_repo "$repo_dir"
+  write_approved_spec "$repo_dir"
+  write_plan "$repo_dir" "superpowers:executing-plans"
+  evidence_rel="$(evidence_rel_path "$PLAN_REL" 1)"
+  write_file "$repo_dir/$evidence_rel" <<EOF
+# Execution Evidence: 2026-03-17-example-execution-plan
+
+**Plan Path:** ${PLAN_REL}
+**Plan Revision:** 1
+
+## Step Evidence
+
+### Task 1 Step 1
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-17T14:22:31Z
+**Execution Source:** superpowers:subagent-driven-development
+**Claim:** Prepared the workspace for execution.
+**Files:**
+- docs/example-output.md
+**Verification:**
+- \`bash tests/codex-runtime/test-superpowers-plan-execution.sh\` -> passed in fixture setup
+**Invalidation Reason:** N/A
+EOF
+
+  run_command_fails "$repo_dir" MalformedExecutionState status --plan "$PLAN_REL" >/dev/null
+}
+
 run_status_rejects_whitespace_only_persisted_claim() {
   local repo_dir="$REPO_DIR/whitespace-only-persisted-claim"
   local evidence_rel
@@ -1378,6 +1471,9 @@ run_status_rejects_evidence_history_with_none_mode
 run_status_rejects_malformed_note_structure
 run_status_rejects_malformed_evidence_attempt_fields
 run_status_rejects_whitespace_only_execution_note_summary
+run_status_rejects_overlong_execution_note_summary
+run_status_rejects_out_of_range_persisted_execution_source
+run_status_rejects_persisted_execution_source_mismatch
 run_status_rejects_whitespace_only_persisted_claim
 run_status_rejects_whitespace_only_persisted_verification
 run_status_rejects_whitespace_only_persisted_invalidation_reason
