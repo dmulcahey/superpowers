@@ -33,6 +33,7 @@ USER_NAME="$(whoami 2>/dev/null || echo user)"
 # manifest state stores repo identity plus canonical reason diagnostics
 # malformed spec/plan headers surface explicit malformed reasons
 # cross-slug recovery respects the bounded 12-candidate lookup budget
+# read-only resolve exposes side-effect-free parity for the public workflow CLI
 
 require_helper() {
   if [[ ! -x "$STATUS_BIN" ]]; then
@@ -125,6 +126,21 @@ run_command_succeeds() {
   output="$(cd "$repo_dir" && "$STATUS_BIN" "$@" 2>&1)" || status=$?
   if [[ $status -ne 0 ]]; then
     echo "Expected command to succeed for: $label"
+    printf '%s\n' "$output"
+    exit 1
+  fi
+  printf '%s\n' "$output"
+}
+
+run_resolve_succeeds() {
+  local repo_dir="$1"
+  local label="$2"
+  local output
+  local status=0
+  shift 2
+  output="$(cd "$repo_dir" && "$STATUS_BIN" resolve "$@" 2>&1)" || status=$?
+  if [[ $status -ne 0 ]]; then
+    echo "Expected read-only resolve to succeed for: $label"
     printf '%s\n' "$output"
     exit 1
   fi
@@ -834,6 +850,59 @@ run_branch_isolated_manifests() {
   fi
 }
 
+run_read_only_resolve_parity() {
+  local repo="$REPO_DIR/read-only-resolve-parity"
+  local spec_path="$repo/docs/superpowers/specs/2026-03-18-resolve-parity.md"
+  local resolve_output
+
+  init_repo "$repo"
+  write_file "$spec_path" <<'EOF'
+# Resolve Parity Spec
+
+**Workflow State:** Draft
+**Spec Revision:** 1
+**Last Reviewed By:** brainstorming
+EOF
+
+  resolve_output="$(run_resolve_succeeds "$repo" "read-only resolve parity")"
+  assert_contains "$resolve_output" '"status":"spec_draft"' "read-only resolve status"
+  assert_contains "$resolve_output" '"next_skill":"superpowers:plan-ceo-review"' "read-only resolve next skill"
+  assert_contains "$resolve_output" '2026-03-18-resolve-parity.md' "read-only resolve spec path"
+}
+
+run_read_only_resolve_outside_repo() {
+  local outside_repo="$REPO_DIR/read-only-resolve-outside"
+  mkdir -p "$outside_repo"
+
+  run_command_fails "$outside_repo" "read-only resolve outside repo" "repo" resolve
+}
+
+run_read_only_resolve_avoids_manifest_mutation() {
+  local repo="$REPO_DIR/read-only-resolve-no-mutation"
+  local spec_path="$repo/docs/superpowers/specs/2026-03-18-resolve-no-mutation.md"
+  local manifest_path
+  local before_snapshot="$REPO_DIR/resolve-manifest-before.json"
+
+  init_repo "$repo"
+  write_file "$spec_path" <<'EOF'
+# Resolve No Mutation Spec
+
+**Workflow State:** Draft
+**Spec Revision:** 1
+**Last Reviewed By:** brainstorming
+EOF
+
+  run_status_refresh "$repo" "resolve manifest bootstrap" "superpowers:plan-ceo-review" >/dev/null
+  manifest_path="$(manifest_path_for_branch "$repo")"
+  cp "$manifest_path" "$before_snapshot"
+
+  run_resolve_succeeds "$repo" "read-only resolve no mutation" >/dev/null
+  if ! cmp -s "$before_snapshot" "$manifest_path"; then
+    echo "Expected read-only resolve to leave the manifest byte-identical"
+    exit 1
+  fi
+}
+
 run_implementation_ready() {
   local repo="$REPO_DIR/implementation-ready"
   local spec_path="$repo/docs/superpowers/specs/2026-03-17-implementation-ready-design.md"
@@ -901,6 +970,9 @@ run_cross_slug_recovery
 run_cross_slug_recovery_budget_limit
 run_malformed_spec_headers
 run_malformed_plan_headers
+run_read_only_resolve_parity
+run_read_only_resolve_outside_repo
+run_read_only_resolve_avoids_manifest_mutation
 run_implementation_ready
 
 echo "superpowers-workflow-status regression scaffold passed."

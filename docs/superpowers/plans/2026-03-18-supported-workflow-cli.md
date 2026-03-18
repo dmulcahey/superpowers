@@ -4,7 +4,7 @@
 
 **Workflow State:** Engineering Approved
 **Plan Revision:** 1
-**Execution Mode:** none
+**Execution Mode:** superpowers:executing-plans
 **Source Spec:** `docs/superpowers/specs/2026-03-18-supported-workflow-cli-design.md`
 **Source Spec Revision:** 1
 **Last Reviewed By:** plan-eng-review
@@ -187,8 +187,7 @@ No critical gap remains in this plan if the tests above are implemented exactly 
 - Test: `bash tests/codex-runtime/test-superpowers-workflow.sh`
 - Test: `bash tests/codex-runtime/test-superpowers-workflow-status.sh`
 
-- [ ] **Step 1: Add a failing public CLI regression scaffold**
-
+- [x] **Step 1: Add a failing public CLI regression scaffold**
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
@@ -206,8 +205,7 @@ STATUS_BIN="$REPO_ROOT/bin/superpowers-workflow-status"
 # - non-mutation of repo docs and manifest files
 ```
 
-- [ ] **Step 2: Add explicit red cases for read-only behavior**
-
+- [x] **Step 2: Add explicit red cases for read-only behavior**
 ```bash
 # Assert before implementation:
 # - running `superpowers-workflow status` does not create a manifest
@@ -216,8 +214,7 @@ STATUS_BIN="$REPO_ROOT/bin/superpowers-workflow-status"
 # - repo-tracked spec/plan docs remain byte-identical after each public command
 ```
 
-- [ ] **Step 3: Add failing runtime-failure coverage**
-
+- [x] **Step 3: Add failing runtime-failure coverage**
 ```bash
 # Cover at least:
 # - `status` outside a git repo -> nonzero + repo-context message
@@ -225,8 +222,7 @@ STATUS_BIN="$REPO_ROOT/bin/superpowers-workflow-status"
 # - injected resolver failure -> nonzero + named failure class in debug output
 ```
 
-- [ ] **Step 4: Extend the internal-helper suite with red read-only resolver assertions**
-
+- [x] **Step 4: Extend the internal-helper suite with red read-only resolver assertions**
 ```bash
 # Add coverage that the internal helper exposes a side-effect-free resolver entrypoint:
 # - same stage/artifact selection as the public CLI fixtures
@@ -234,8 +230,7 @@ STATUS_BIN="$REPO_ROOT/bin/superpowers-workflow-status"
 # - same bounded candidate scan policy as the recovery path
 ```
 
-- [ ] **Step 5: Add the new runtime files to the validation set**
-
+- [x] **Step 5: Add the new runtime files to the validation set**
 ```bash
 # Add to FILES in tests/codex-runtime/test-runtime-instructions.sh
 "bin/superpowers-workflow"
@@ -243,8 +238,7 @@ STATUS_BIN="$REPO_ROOT/bin/superpowers-workflow-status"
 "tests/codex-runtime/test-superpowers-workflow.sh"
 ```
 
-- [ ] **Step 6: Run the red tests and capture the expected failures**
-
+- [x] **Step 6: Run the red tests and capture the expected failures**
 Run: `bash tests/codex-runtime/test-superpowers-workflow.sh`
 Expected: FAIL with missing-binary assertions or missing public-command behavior.
 
@@ -256,6 +250,7 @@ Expected: FAIL with missing runtime file errors for the new CLI surfaces.
 
 - [ ] **Step 7: Commit the red test surface**
 
+  **Execution Note:** Active - Commit the red test surface
 ```bash
 git add tests/codex-runtime/test-superpowers-workflow.sh tests/codex-runtime/test-superpowers-workflow-status.sh tests/codex-runtime/test-runtime-instructions.sh
 git commit -m "test: add workflow cli contract coverage"
@@ -269,7 +264,6 @@ git commit -m "test: add workflow cli contract coverage"
 - Test: `bash tests/codex-runtime/test-superpowers-workflow-status.sh`
 
 - [ ] **Step 1: Refactor the existing helper into explicit read-only and mutating phases**
-
 ```bash
 # Inside bin/superpowers-workflow-status
 # - keep shared parsing/path helpers near the top
@@ -278,7 +272,6 @@ git commit -m "test: add workflow cli contract coverage"
 ```
 
 - [ ] **Step 2: Implement a read-only resolver entrypoint in the existing helper**
-
 ```bash
 cmd_resolve() {
   # returns JSON with:
@@ -295,7 +288,6 @@ cmd_resolve() {
 ```
 
 - [ ] **Step 3: Keep read-only resolution strictly non-mutating**
-
 ```bash
 # Required guards inside `cmd_resolve` and the functions it calls:
 # - never call write_manifest_with_retry
@@ -305,7 +297,6 @@ cmd_resolve() {
 ```
 
 - [ ] **Step 4: Expose the internal resolver subcommand without changing the supported helper surfaces**
-
 ```bash
 case "${1:-}" in
   status) shift; cmd_status "$@" ;;
@@ -317,7 +308,6 @@ esac
 ```
 
 - [ ] **Step 5: Preserve existing mutating helper semantics on the `status --refresh`, `expect`, and `sync` codepaths**
-
 ```bash
 # Keep:
 # - branch-scoped manifest writes
@@ -327,7 +317,6 @@ esac
 ```
 
 - [ ] **Step 6: Add deterministic failure-class coverage to the helper suite**
-
 ```bash
 # Assert:
 # - outside repo read-only resolve -> RepoContextUnavailable
@@ -337,12 +326,10 @@ esac
 ```
 
 - [ ] **Step 7: Run the helper suite until the read-only resolver contract passes**
-
 Run: `bash tests/codex-runtime/test-superpowers-workflow-status.sh`
 Expected: PASS with existing helper behavior preserved and new read-only resolver assertions green.
 
 - [ ] **Step 8: Commit the shared resolver extraction**
-
 ```bash
 git add bin/superpowers-workflow-status tests/codex-runtime/test-superpowers-workflow-status.sh
 git commit -m "refactor: add read-only workflow resolver"
@@ -356,7 +343,6 @@ git commit -m "refactor: add read-only workflow resolver"
 - Test: `bash tests/codex-runtime/test-superpowers-workflow.sh`
 
 - [ ] **Step 1: Add the public command parser and shared option handling**
-
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
@@ -371,7 +357,6 @@ esac
 ```
 
 - [ ] **Step 2: Implement `help` as a repo-independent command**
-
 ```text
 Supported commands:
   superpowers-workflow status
@@ -385,7 +370,6 @@ Diagnostics:
 ```
 
 - [ ] **Step 3: Shell out to the internal read-only resolver and validate the returned contract**
-
 ```bash
 resolver_json="$("$STATUS_BIN" resolve --debug="$debug")" || {
   render_runtime_failure "WrapperExecutionFailed" "Could not run the internal workflow resolver."
@@ -395,7 +379,6 @@ resolver_json="$("$STATUS_BIN" resolve --debug="$debug")" || {
 ```
 
 - [ ] **Step 4: Render the public `status`, `next`, `artifacts`, and `explain` outputs**
-
 ```text
 Workflow status: Plan writing needed
 Why: The spec is approved, but no current plan is available.
@@ -405,7 +388,6 @@ Plan: none
 ```
 
 - [ ] **Step 5: Keep `implementation_ready` inside the product-workflow boundary**
-
 ```text
 Next safe step: Use the approved plan for execution handoff.
 Plan: docs/superpowers/plans/2026-03-18-supported-workflow-cli.md
@@ -413,7 +395,6 @@ Execution recommendation stays with superpowers-plan-execution.
 ```
 
 - [ ] **Step 6: Implement `--debug` without changing the default human contract**
-
 ```text
 Debug:
 - resolver_outcome=resolved
@@ -423,12 +404,10 @@ Debug:
 ```
 
 - [ ] **Step 7: Run the public CLI suite until all supported states and failures pass**
-
 Run: `bash tests/codex-runtime/test-superpowers-workflow.sh`
 Expected: PASS with command-by-state, non-mutation, and debug/failure coverage green.
 
 - [ ] **Step 8: Commit the public bash CLI**
-
 ```bash
 git add bin/superpowers-workflow tests/codex-runtime/test-superpowers-workflow.sh
 git commit -m "feat: add public workflow cli"
@@ -443,7 +422,6 @@ git commit -m "feat: add public workflow cli"
 - Test: `bash tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh`
 
 - [ ] **Step 1: Add the PowerShell wrapper using the existing shared helper**
-
 ```powershell
 . (Join-Path $PSScriptRoot 'superpowers-pwsh-common.ps1')
 
@@ -454,7 +432,6 @@ $exitCode = $LASTEXITCODE
 ```
 
 - [ ] **Step 2: Preserve JSON path conversion only where the wrapper is actually returning JSON diagnostics**
-
 ```powershell
 if ($exitCode -eq 0 -and $outputText.TrimStart().StartsWith('{')) {
   $outputText = Convert-SuperpowersJsonFieldPathsToWindows -JsonText $outputText -Fields @('root')
@@ -462,7 +439,6 @@ if ($exitCode -eq 0 -and $outputText.TrimStart().StartsWith('{')) {
 ```
 
 - [ ] **Step 3: Extend wrapper regression coverage for the new binary**
-
 ```bash
 # Assert:
 # - wrapper selects Git Bash
@@ -473,12 +449,10 @@ if ($exitCode -eq 0 -and $outputText.TrimStart().StartsWith('{')) {
 ```
 
 - [ ] **Step 4: Run the wrapper regression suite**
-
 Run: `bash tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh`
 Expected: PASS or SKIP with the new `superpowers-workflow.ps1` assertions green on hosts with PowerShell.
 
 - [ ] **Step 5: Commit wrapper parity**
-
 ```bash
 git add bin/superpowers-workflow.ps1 tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh tests/codex-runtime/test-superpowers-workflow.sh
 git commit -m "feat: add workflow cli powershell wrapper"
@@ -496,7 +470,6 @@ git commit -m "feat: add workflow cli powershell wrapper"
 - Test: `bash tests/codex-runtime/test-runtime-instructions.sh`
 
 - [ ] **Step 1: Update runtime docs to distinguish the public CLI from the internal helper**
-
 ```markdown
 - `bin/superpowers-workflow` is the supported public inspection CLI.
 - `bin/superpowers-workflow-status` remains an internal helper for workflow automation.
@@ -504,7 +477,6 @@ git commit -m "feat: add workflow cli powershell wrapper"
 ```
 
 - [ ] **Step 2: Document the public commands and the execution-boundary rule**
-
 ```markdown
 Supported commands:
 - `status`
@@ -517,14 +489,12 @@ At `implementation_ready`, `next` stops at execution handoff and does not run `s
 ```
 
 - [ ] **Step 3: Update testing docs and runtime validation inventory**
-
 ```markdown
 - Add `bash tests/codex-runtime/test-superpowers-workflow.sh`
 - Clarify that public CLI tests assert non-mutation and debug/failure behavior
 ```
 
 - [ ] **Step 4: Record the feature in release notes**
-
 ```markdown
 ### Workflow Runtime
 - Added supported public workflow inspection binaries: `bin/superpowers-workflow` and `bin/superpowers-workflow.ps1`
@@ -533,7 +503,6 @@ At `implementation_ready`, `next` stops at execution handoff and does not run `s
 ```
 
 - [ ] **Step 5: Run the full deterministic validation set**
-
 Run: `bash tests/codex-runtime/test-runtime-instructions.sh`
 Expected: PASS
 
@@ -556,7 +525,6 @@ Run: `node --test tests/codex-runtime/*.test.mjs`
 Expected: PASS
 
 - [ ] **Step 6: Commit docs and release-surface updates**
-
 ```bash
 git add README.md docs/README.codex.md docs/README.copilot.md docs/testing.md RELEASE-NOTES.md tests/codex-runtime/test-runtime-instructions.sh
 git commit -m "docs: document supported workflow cli"
