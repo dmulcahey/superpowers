@@ -21,6 +21,12 @@ function getSkillPath(skill) {
   return path.join(SKILLS_DIR, skill, 'SKILL.md');
 }
 
+function getSkillDescription(skill) {
+  const frontmatter = parseFrontmatter(readUtf8(getSkillPath(skill)));
+  assert.ok(frontmatter, `${skill} should have frontmatter`);
+  return frontmatter.description;
+}
+
 test('templates declare exactly one base or review preamble placeholder', () => {
   for (const skill of listGeneratedSkills()) {
     const template = readUtf8(getTemplatePath(skill));
@@ -125,18 +131,66 @@ test('workflow sequencing test uses local fixtures instead of historical docs pa
   assert.doesNotMatch(stripped, /docs\/superpowers\/plans\/2026-/);
 });
 
-test('workflow-critical skill descriptions encode approval-stage prerequisites', () => {
+test('broad-safe skill descriptions expand discovery language without taking over workflow authority', () => {
   const expected = {
-    'writing-plans': /CEO-approved Superpowers spec/,
-    'plan-eng-review': /CEO-approved spec/,
-    'subagent-driven-development': /engineering-approved Superpowers implementation plan/,
-    'executing-plans': /engineering-approved Superpowers implementation plan/,
+    'using-superpowers': [/which skill/i, /workflow stage applies/i],
+    'brainstorming': [/feature idea/i, /architecture direction/i],
+    'systematic-debugging': [/regression/i],
+    'document-release': [/release notes/i, /handoff documentation/i],
+    'qa-only': [/repro steps/i, /screenshots/i],
   };
 
-  for (const [skill, pattern] of Object.entries(expected)) {
-    const frontmatter = parseFrontmatter(readUtf8(getSkillPath(skill)));
-    assert.ok(frontmatter, `${skill} should have frontmatter`);
-    assert.match(frontmatter.description, pattern, `${skill} description should encode the required workflow gate`);
+  for (const [skill, patterns] of Object.entries(expected)) {
+    const description = getSkillDescription(skill);
+    for (const pattern of patterns) {
+      assert.match(description, pattern, `${skill} description should broaden discovery with ${pattern}`);
+    }
+  }
+});
+
+test('workflow-critical skill descriptions encode approval-stage prerequisites', () => {
+  const expected = {
+    'plan-ceo-review': [/written Superpowers design or architecture spec/i, /before implementation planning/i],
+    'writing-plans': [/CEO-approved Superpowers spec/i, /write the implementation plan/i],
+    'plan-eng-review': [/written Superpowers implementation plan/i, /CEO-approved spec/i],
+    'subagent-driven-development': [/engineering-approved Superpowers implementation plan/i, /mostly independent tasks/i],
+    'executing-plans': [/engineering-approved Superpowers implementation plan/i, /separate session/i],
+    'requesting-code-review': [/after implementation work/i, /completed plan\/task slice/i],
+    'finishing-a-development-branch': [/implementation is complete/i, /verification passes/i],
+  };
+
+  for (const [skill, patternOrPatterns] of Object.entries(expected)) {
+    const description = getSkillDescription(skill);
+    const patterns = Array.isArray(patternOrPatterns) ? patternOrPatterns : [patternOrPatterns];
+    for (const pattern of patterns) {
+      assert.match(description, pattern, `${skill} description should encode the required workflow gate`);
+    }
+  }
+});
+
+test('late-stage skill descriptions reject generic skip-ahead trigger phrases', () => {
+  const lateStageSkills = [
+    'plan-ceo-review',
+    'writing-plans',
+    'plan-eng-review',
+    'executing-plans',
+    'subagent-driven-development',
+    'requesting-code-review',
+    'finishing-a-development-branch',
+  ];
+  const forbiddenPatterns = [
+    /implement this/i,
+    /start coding/i,
+    /build this/i,
+    /plan this feature/i,
+    /implementing major features/i,
+  ];
+
+  for (const skill of lateStageSkills) {
+    const description = getSkillDescription(skill);
+    for (const pattern of forbiddenPatterns) {
+      assert.doesNotMatch(description, pattern, `${skill} description should not match ${pattern}`);
+    }
   }
 });
 

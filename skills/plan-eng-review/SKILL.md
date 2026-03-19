@@ -1,6 +1,6 @@
 ---
 name: plan-eng-review
-description: Use when a Superpowers implementation plan from a CEO-approved spec has been written and needs engineering review before execution
+description: Use when a written Superpowers implementation plan from a CEO-approved spec needs engineering review before execution
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: node scripts/gen-skill-docs.mjs -->

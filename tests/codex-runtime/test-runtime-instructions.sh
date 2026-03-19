@@ -357,7 +357,7 @@ required_patterns=(
   'skills/brainstorming/SKILL.md:**Workflow State:** Draft'
   "skills/brainstorming/SKILL.md:**The terminal state is invoking plan-ceo-review.**"
   "skills/writing-plans/SKILL.md:## Preamble (run first)"
-  "skills/writing-plans/SKILL.md:Use when you have a CEO-approved Superpowers spec for a multi-step task and need an implementation plan, before touching code"
+  "skills/writing-plans/SKILL.md:Use when you have a CEO-approved Superpowers spec for a multi-step task and need to write the implementation plan before touching code"
   "skills/writing-plans/SKILL.md:## Plan Review Handoff"
   'skills/writing-plans/SKILL.md:If the spec is missing these lines, or if `**Workflow State:**` is not `CEO Approved`, stop and direct the agent to `superpowers:plan-ceo-review`.'
   'skills/writing-plans/SKILL.md:Invoke `superpowers:plan-eng-review` after saving the full plan.'
@@ -373,7 +373,7 @@ required_patterns=(
   "skills/plan-ceo-review/SKILL.md:.github/copilot-instructions.md"
   "skills/plan-ceo-review/SKILL.md:.github/instructions/*.instructions.md"
   "skills/plan-eng-review/SKILL.md:docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md"
-  "skills/plan-eng-review/SKILL.md:Use when a Superpowers implementation plan from a CEO-approved spec has been written and needs engineering review before execution"
+  "skills/plan-eng-review/SKILL.md:Use when a written Superpowers implementation plan from a CEO-approved spec needs engineering review before execution"
   'skills/plan-eng-review/SKILL.md:**Workflow State:** Draft | Engineering Approved'
   "skills/plan-eng-review/SKILL.md:_TODOS_FORMAT"
   'skills/plan-eng-review/SKILL.md:If no current plan exists, stop and direct the agent back to `superpowers:writing-plans`.'
@@ -672,13 +672,13 @@ for pattern in \
 done
 
 for pattern in \
-  'skills/executing-plans/SKILL.md:Use when you have an engineering-approved Superpowers implementation plan to execute in a separate session' \
+  'skills/executing-plans/SKILL.md:Use when you have an engineering-approved Superpowers implementation plan and need to execute it in a separate session' \
   'skills/executing-plans/SKILL.md:Use this skill when implementation should happen in a separate session.' \
   'skills/executing-plans/SKILL.md:**REQUIRED SUB-SKILL:** Use `superpowers:requesting-code-review`' \
   'skills/executing-plans/SKILL.md:After the final review is resolved:' \
   'skills/finishing-a-development-branch/SKILL.md:- **subagent-driven-development** - After the final review passes and all tasks are complete' \
   'skills/finishing-a-development-branch/SKILL.md:- **executing-plans** - After the final review is resolved and all tasks are complete' \
-  'skills/subagent-driven-development/SKILL.md:Use when executing an engineering-approved Superpowers implementation plan with independent tasks in the current session' \
+  'skills/subagent-driven-development/SKILL.md:Use when executing an engineering-approved Superpowers implementation plan with mostly independent tasks in the current session' \
   'skills/subagent-driven-development/SKILL.md:**vs. Executing Plans (parallel session):**' \
   'skills/subagent-driven-development/SKILL.md:- **superpowers:executing-plans** - Use for parallel session instead of same-session execution' \
   'skills/subagent-driven-development/SKILL.md:[Invoke superpowers:finishing-a-development-branch]' \

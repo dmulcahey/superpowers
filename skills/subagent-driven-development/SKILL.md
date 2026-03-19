@@ -1,6 +1,6 @@
 ---
 name: subagent-driven-development
-description: Use when executing an engineering-approved Superpowers implementation plan with independent tasks in the current session
+description: Use when executing an engineering-approved Superpowers implementation plan with mostly independent tasks in the current session
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: node scripts/gen-skill-docs.mjs -->

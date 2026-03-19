@@ -1,6 +1,6 @@
 ---
 name: document-release
-description: Use when implementation is complete and documentation, changelog, or TODO hygiene need a release-quality pass before merge
+description: Use when implementation is complete and release notes, changelog, TODO, or handoff documentation need a release-quality pass before merge
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: node scripts/gen-skill-docs.mjs -->

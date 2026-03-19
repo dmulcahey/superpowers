@@ -1,6 +1,6 @@
 ---
 name: qa-only
-description: Use when you need browser-based QA with evidence and reports, but do not want the agent to fix any code
+description: Use when you need browser-based QA, repro steps, screenshots, evidence, and reports, but do not want the agent to fix any code
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: node scripts/gen-skill-docs.mjs -->
