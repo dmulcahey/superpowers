@@ -152,7 +152,11 @@ Before presenting completion options:
 Before presenting completion options, look for a branch-specific QA handoff artifact:
 
 ```bash
-eval "$("$_SUPERPOWERS_ROOT/bin/superpowers-slug")"
+_SLUG_ENV=$("$_SUPERPOWERS_ROOT/bin/superpowers-slug" 2>/dev/null || true)
+if [ -n "$_SLUG_ENV" ]; then
+  eval "$_SLUG_ENV"
+fi
+unset _SLUG_ENV
 PLAN_ARTIFACT=$(ls -t "$_SP_STATE_DIR/projects/$SLUG"/*-"$BRANCH"-test-plan-*.md 2>/dev/null | head -1)
 printf '%s\n' "$PLAN_ARTIFACT"
 ```

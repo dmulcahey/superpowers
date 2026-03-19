@@ -48,7 +48,11 @@ mkdir -p "$REPORT_DIR/screenshots"
 Before falling back to git-diff heuristics, look for richer QA input:
 
 ```bash
-eval "$("$_SUPERPOWERS_ROOT/bin/superpowers-slug")"
+_SLUG_ENV=$("$_SUPERPOWERS_ROOT/bin/superpowers-slug" 2>/dev/null || true)
+if [ -n "$_SLUG_ENV" ]; then
+  eval "$_SLUG_ENV"
+fi
+unset _SLUG_ENV
 PLAN_ARTIFACT=$(ls -t "$_SP_STATE_DIR/projects/$SLUG"/*-"$BRANCH"-test-plan-*.md 2>/dev/null | head -1)
 [ -n "$PLAN_ARTIFACT" ] || PLAN_ARTIFACT=$(ls -t "$_SP_STATE_DIR/projects/$SLUG"/*-test-plan-*.md 2>/dev/null | head -1)
 printf '%s\n' "$PLAN_ARTIFACT"
@@ -155,7 +159,11 @@ Write the local report to:
 Also write a project-scoped outcome artifact:
 
 ```bash
-eval "$("$_SUPERPOWERS_ROOT/bin/superpowers-slug")"
+_SLUG_ENV=$("$_SUPERPOWERS_ROOT/bin/superpowers-slug" 2>/dev/null || true)
+if [ -n "$_SLUG_ENV" ]; then
+  eval "$_SLUG_ENV"
+fi
+unset _SLUG_ENV
 USER=$(whoami)
 DATETIME=$(date +%Y%m%d-%H%M%S)
 mkdir -p "$_SP_STATE_DIR/projects/$SLUG"

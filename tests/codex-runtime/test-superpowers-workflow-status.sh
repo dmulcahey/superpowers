@@ -803,6 +803,49 @@ EOF
   assert_not_contains "$manifest_json" "$expected_plan" "cross slug budget manifest should not recover beyond limit"
 }
 
+run_runtime_bin_helper_overrides_repo_local_helper() {
+  local repo="$REPO_DIR/runtime-bin-helper-overrides"
+  local spec_path="$repo/docs/superpowers/specs/2026-03-17-runtime-bin-helper-design.md"
+  local manifest_path
+  local output
+  local expected_manifest_path
+  local bogus_manifest_path="$STATE_DIR/projects/repo-local-helper-bogus/${USER_NAME}-bogus-branch-workflow-state.json"
+  local slug_dir="$repo/bin"
+
+  init_repo "$repo" "https://example.com/example/runtime-bin-helper.git"
+  write_file "$spec_path" <<'EOF'
+# Runtime Bin Helper Spec
+
+**Workflow State:** Draft
+**Spec Revision:** 1
+**Last Reviewed By:** brainstorming
+EOF
+
+  mkdir -p "$slug_dir"
+  cat > "$slug_dir/superpowers-slug" <<'EOF'
+#!/usr/bin/env bash
+printf 'SLUG=%q\nBRANCH=%q\n' "repo-local-helper-bogus" "bogus-branch"
+EOF
+  chmod +x "$slug_dir/superpowers-slug"
+
+  expected_manifest_path="$(manifest_path_for_branch "$repo")"
+  output="$(run_status_refresh "$repo" "runtime bin helper overrides repo-local helper" "superpowers:plan-ceo-review")"
+
+  assert_contains "$output" "$expected_manifest_path" "runtime-bin helper manifest path"
+  assert_not_contains "$output" "repo-local-helper-bogus" "runtime-bin helper should ignore repo-local slug helper"
+
+  manifest_path="$(manifest_path_for_branch "$repo")"
+  if [[ ! -f "$manifest_path" ]]; then
+    echo "Expected manifest at runtime helper-derived path"
+    exit 1
+  fi
+  if [[ -e "$bogus_manifest_path" ]]; then
+    echo "Expected repo-local bogus helper path to remain unused"
+    echo "$bogus_manifest_path"
+    exit 1
+  fi
+}
+
 run_out_of_repo_expect() {
   local repo="$REPO_DIR/out-of-repo-path"
   local outside_path="$REPO_DIR/../../outside.md"
@@ -1019,6 +1062,7 @@ run_status_summary_matches_json
 run_repo_root_mismatch_recovery
 run_cross_slug_recovery
 run_cross_slug_recovery_budget_limit
+run_runtime_bin_helper_overrides_repo_local_helper
 run_malformed_spec_headers
 run_malformed_plan_headers
 run_read_only_resolve_parity

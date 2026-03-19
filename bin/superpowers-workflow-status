@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STATE_DIR="${SUPERPOWERS_STATE_DIR:-$HOME/.superpowers}"
 GIT_REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 REPO_CONTEXT_AVAILABLE=1
@@ -42,8 +43,8 @@ BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo current)"
 RAW_BRANCH="$BRANCH"
 SLUG=""
 SAFE_BRANCH=""
-if [ -x "$REPO_ROOT/bin/superpowers-slug" ]; then
-  IDENTITY_OUTPUT="$("$REPO_ROOT/bin/superpowers-slug" 2>/dev/null || true)"
+if [ -x "$SCRIPT_DIR/superpowers-slug" ]; then
+  IDENTITY_OUTPUT="$("$SCRIPT_DIR/superpowers-slug" 2>/dev/null || true)"
   if [ -n "$IDENTITY_OUTPUT" ]; then
     eval "$IDENTITY_OUTPUT"
     SAFE_BRANCH="$BRANCH"

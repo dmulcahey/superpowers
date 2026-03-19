@@ -167,7 +167,11 @@ For LLM or prompt changes, check the repo's prompt or evaluation docs. If this p
 After producing the test diagram, write a QA handoff artifact for cross-session reuse:
 
 ```bash
-eval "$("$_SUPERPOWERS_ROOT/bin/superpowers-slug")"
+_SLUG_ENV=$("$_SUPERPOWERS_ROOT/bin/superpowers-slug" 2>/dev/null || true)
+if [ -n "$_SLUG_ENV" ]; then
+  eval "$_SLUG_ENV"
+fi
+unset _SLUG_ENV
 USER=$(whoami)
 DATETIME=$(date +%Y%m%d-%H%M%S)
 mkdir -p "$_SP_STATE_DIR/projects/$SLUG"

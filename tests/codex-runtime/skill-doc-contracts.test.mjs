@@ -55,6 +55,15 @@ test('generated preambles capture _BRANCH exactly once and keep helper BRANCH ou
   }
 });
 
+test('generated branch-aware helper loads are guarded through _SLUG_ENV and eval the captured output only', () => {
+  for (const skill of ['qa-only', 'plan-eng-review', 'finishing-a-development-branch']) {
+    const content = readUtf8(getSkillPath(skill));
+    assert.match(content, /_SLUG_ENV=\$\("\$_SUPERPOWERS_ROOT\/bin\/superpowers-slug" 2>\/dev\/null \|\| true\)/, `${skill} should capture helper output into _SLUG_ENV`);
+    assert.match(content, /if \[ -n "\$_SLUG_ENV" \]; then\n\s+eval "\$_SLUG_ENV"\nfi/, `${skill} should only eval guarded helper output`);
+    assert.doesNotMatch(content, /eval "\$\("\$_SUPERPOWERS_ROOT\/bin\/superpowers-slug"\)/, `${skill} should not unguardedly eval helper command substitution`);
+  }
+});
+
 test('branch-aware skill docs consume the slug helper instead of inline sanitization fragments', () => {
   for (const skill of ['qa-only', 'plan-eng-review', 'finishing-a-development-branch']) {
     const content = readUtf8(getSkillPath(skill));
