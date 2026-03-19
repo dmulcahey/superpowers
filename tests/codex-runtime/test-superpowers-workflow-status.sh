@@ -42,6 +42,16 @@ require_helper() {
   fi
 }
 
+slug_identity_for_repo() {
+  local repo_dir="$1"
+  local helper_output
+  local SLUG
+  local BRANCH
+  helper_output="$(cd "$repo_dir" && "$REPO_ROOT/bin/superpowers-slug")"
+  eval "$helper_output"
+  printf '%s\t%s\n' "$SLUG" "$BRANCH"
+}
+
 assert_contains() {
   local output="$1"
   local expected="$2"
@@ -193,44 +203,13 @@ init_repo() {
   fi
 }
 
-repo_slug_for_manifest() {
-  local repo_dir="$1"
-  local repo_root
-  local remote_url
-  local slug
-  local repo_base
-  local hash
-
-  repo_root="$(git -C "$repo_dir" rev-parse --show-toplevel 2>/dev/null || printf '%s' "$repo_dir")"
-  remote_url="$(git -C "$repo_dir" remote get-url origin 2>/dev/null || true)"
-  slug="$(printf '%s' "$remote_url" | sed -E 's|.*[:/]+([^/]+/[^/]+)\.git$|\1|; s|.*[:/]+([^/]+/[^/]+)$|\1|')"
-  if [[ -z "$slug" || "$slug" == "$remote_url" ]]; then
-    repo_base="$(basename "$repo_root")"
-    if command -v shasum >/dev/null 2>&1; then
-      hash="$(printf '%s' "$repo_root" | shasum -a 256 | awk '{print substr($1, 1, 12)}')"
-    elif command -v sha256sum >/dev/null 2>&1; then
-      hash="$(printf '%s' "$repo_root" | sha256sum | awk '{print substr($1, 1, 12)}')"
-    else
-      hash="$(printf '%s' "$repo_root" | cksum | awk '{print $1}')"
-    fi
-    slug="${repo_base}-${hash}"
-  fi
-  printf '%s' "$slug" | tr '/' '-'
-}
-
 manifest_path_for_branch() {
   local repo_dir="$1"
-  local branch
-  local safe_branch
   local slug
+  local branch
 
-  branch="$(git -C "$repo_dir" rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)"
-  if [[ "$branch" == "HEAD" || -z "$branch" ]]; then
-    branch="main"
-  fi
-  safe_branch="$(printf '%s' "$branch" | sed 's#[^A-Za-z0-9._-]#-#g')"
-  slug="$(repo_slug_for_manifest "$repo_dir")"
-  printf '%s\n' "$STATE_DIR/projects/$slug/${USER_NAME}-${safe_branch}-workflow-state.json"
+  IFS=$'\t' read -r slug branch < <(slug_identity_for_repo "$repo_dir")
+  printf '%s\n' "$STATE_DIR/projects/$slug/${USER_NAME}-${branch}-workflow-state.json"
 }
 
 write_file() {
@@ -783,14 +762,14 @@ run_cross_slug_recovery_budget_limit() {
   local repo="$REPO_DIR/cross-slug-budget-limit"
   local approved_spec="docs/superpowers/specs/2026-03-17-budget-limit-design.md"
   local expected_plan="docs/superpowers/plans/2026-03-17-budget-limit-plan.md"
-  local branch
-  local safe_branch
   local repo_root
   local filename
   local output
   local manifest_path
   local manifest_json
   local i
+  local slug
+  local branch
 
   init_repo "$repo" "https://example.com/example/current-budget-slug.git"
   write_file "$repo/$approved_spec" <<'EOF'
@@ -802,9 +781,8 @@ run_cross_slug_recovery_budget_limit() {
 EOF
 
   repo_root="$(git -C "$repo" rev-parse --show-toplevel)"
-  branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD)"
-  safe_branch="$(printf '%s' "$branch" | sed 's#[^A-Za-z0-9._-]#-#g')"
-  filename="${USER_NAME}-${safe_branch}-workflow-state.json"
+  IFS=$'\t' read -r slug branch < <(slug_identity_for_repo "$repo")
+  filename="${USER_NAME}-${branch}-workflow-state.json"
 
   for i in 01 02 03 04 05 06 07 08 09 10 11 12; do
     write_file "$STATE_DIR/projects/decoy-$i/$filename" <<EOF
@@ -1010,7 +988,7 @@ EOF
   local actual_repo_root
   manifest_path="$(manifest_path_for_branch "$repo")"
   manifest_json="$(cat "$manifest_path")"
-  branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD)"
+  IFS=$'\t' read -r _ branch < <(slug_identity_for_repo "$repo")
   actual_repo_root="$(git -C "$repo" rev-parse --show-toplevel)"
   assert_contains "$manifest_json" "\"repo_root\":\"$actual_repo_root\"" "implementation-ready manifest repo_root"
   assert_contains "$manifest_json" "\"branch\":\"$branch\"" "implementation-ready manifest branch"

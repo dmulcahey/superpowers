@@ -84,4 +84,20 @@ if [[ "$fallback_output" == *"SAFE_BRANCH"* ]]; then
   exit 1
 fi
 
+detached_repo="$tmp_root/detached-repo"
+make_repo "$detached_repo"
+git -C "$detached_repo" checkout --detach HEAD >/dev/null 2>&1
+detached_output="$(run_helper "$detached_repo")"
+unset SLUG BRANCH
+eval "$detached_output"
+expected_hash="$(repo_hash "$(git -C "$detached_repo" rev-parse --show-toplevel 2>/dev/null || printf '%s' "$detached_repo")")"
+expected_slug="$(basename "$(git -C "$detached_repo" rev-parse --show-toplevel 2>/dev/null || printf '%s' "$detached_repo")")-$expected_hash"
+assert_equal "$SLUG" "$expected_slug" "detached-head fallback slug"
+assert_equal "$BRANCH" "current" "detached-head branch fallback"
+if [[ "$detached_output" == *"SAFE_BRANCH"* ]]; then
+  echo "Helper should not emit SAFE_BRANCH"
+  printf '%s\n' "$detached_output"
+  exit 1
+fi
+
 echo "superpowers-slug helper contract passed."
