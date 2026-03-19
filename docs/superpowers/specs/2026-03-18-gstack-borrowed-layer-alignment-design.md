@@ -1,7 +1,7 @@
 # Gstack Borrowed Layer Alignment
-**Workflow State:** Draft
-**Spec Revision:** 1
-**Last Reviewed By:** brainstorming
+**Workflow State:** CEO Approved
+**Spec Revision:** 2
+**Last Reviewed By:** plan-ceo-review
 
 ## Summary
 
@@ -137,6 +137,132 @@ approved docs    -> decide approval state
 execution helper -> decides execution handoff path
 ```
 
+### Dependency Graph
+
+```text
+BEFORE
+template frontmatter ----------> generated skill docs
+skill-local shell snippets ----> repo slug + sanitized branch derivation
+shared preamble ---------------> runtime root detection, update checks, sessions
+workflow helpers -------------> stage and approval authority
+
+AFTER
+template frontmatter ----------> generated skill docs
+                                     |
+                                     v
+                              candidate skill discovery only
+
+superpowers-slug -------------> repo slug + branch identity consumers
+                                     |
+                                     +--> workflow-state artifact paths
+                                     +--> QA artifact paths
+                                     +--> branch-finish artifact paths
+
+generated shared preamble ----> _BRANCH grounding for generated skills
+superpowers-update-check -----> freshness policy and cache behavior
+workflow helpers -------------> stage and approval authority
+```
+
+The architectural rule is that the borrowed-layer alignment may improve discovery and shared runtime consistency, but it may not create a second authority path around the workflow helpers.
+
+### Architecture-Specific Data Flows
+
+#### Flow A: Description Discovery
+
+```text
+user request
+  -> candidate description match
+  -> workflow helper state lookup
+  -> chosen safe skill
+
+shadow paths:
+- no useful description match -> workflow helper still routes conservatively
+- overly broad description text -> contract tests and evals fail the change
+- helper disagreement with wording -> helper wins and earlier-safe stage is chosen
+```
+
+#### Flow B: Repo/Branch Identity
+
+```text
+git remote + git branch
+  -> superpowers-slug
+  -> SLUG / BRANCH
+  -> local artifact paths
+
+shadow paths:
+- missing remote -> deterministic fallback slug
+- detached HEAD -> deterministic branch fallback
+- slash-heavy branch names -> sanitized BRANCH
+- helper failure -> caller fails closed instead of inventing a new derivation
+```
+
+#### Flow C: Update Freshness
+
+```text
+installed version + remote version + cache state
+  -> superpowers-update-check
+  -> UP_TO_DATE / UPGRADE_AVAILABLE / JUST_UPGRADED
+
+shadow paths:
+- stale UP_TO_DATE cache -> short TTL forces refresh
+- recent UPGRADE_AVAILABLE cache -> sticky reuse avoids noisy refetching
+- malformed version text -> existing semver handling remains authoritative
+- remote failure -> no false success cache write
+```
+
+#### Flow D: Branch Grounding
+
+```text
+current git branch
+  -> generated shared preamble
+  -> _BRANCH
+  -> interactive question context / branch-aware messaging
+
+shadow paths:
+- missing branch name -> current fallback value is surfaced consistently
+- long-lived session on changed branch -> fresh preamble evaluation re-grounds context
+- branch capture absent -> generated-doc contract tests fail
+```
+
+### Single Points Of Failure, Scaling, And Security Boundary
+
+This change does not add a network service, database, or new auth surface. The main failure class is correctness drift in local runtime helpers and generated docs.
+
+Single points of failure:
+
+- `superpowers-slug` if callers stop owning their current fallback behavior before the helper is stable
+- `superpowers-update-check` if cache-policy changes regress version truthfulness
+- skill description edits if routing tests are weaker than the broadened wording
+
+Scaling posture:
+
+- 10x and 100x load are not the dominant concerns here because these are local helper and prompt-generation paths
+- the real scale risk is repo-surface scale: more skills, more wrappers, and more generated docs can amplify a weak shared contract quickly
+
+Security boundary:
+
+- this spec does not introduce a new external attack surface
+- the main security-sensitive area is shell/path handling in slug derivation and cached-file handling in update checks
+- callers must reject shell-unsafe assumptions and keep repo-relative path handling conservative
+
+### Production Failure Scenarios
+
+| Area | Realistic Failure | Expected Rescue |
+| --- | --- | --- |
+| Description alignment | a late-stage skill description becomes too broad and starts competing with earlier stages | deterministic contract tests and routing evals block the change |
+| Shared slug helper | repo remote is absent or branch state is detached | helper returns deterministic fallback values and callers avoid ad hoc re-derivation |
+| Update freshness | cache policy change causes stale "up to date" confidence or bad upgrade prompting | preserve existing semver logic, keep remote-failure behavior conservative, and verify with helper tests |
+| Branch grounding | generated preamble change misses some skills and branch context becomes inconsistent | generated-doc contract tests fail and regeneration is blocked until fixed |
+
+### Rollback Posture
+
+If this alignment ships and causes regressions:
+
+1. revert description broadening first if routing confidence changes
+2. revert shared-helper adoption sites while keeping prior inline derivation until helper behavior is fixed
+3. revert cache-policy changes independently from the other items
+4. keep workflow-helper authority unchanged throughout rollback so the earlier safe stage remains available
+
 ## Proposed Changes
 
 ### 1. Trigger-Phrase Skill Descriptions
@@ -167,11 +293,33 @@ Add an internal `bin/superpowers-slug` helper that emits:
 
 - `SLUG`
 - `BRANCH`
-- `SAFE_BRANCH`
 
 This becomes the single source of truth for the narrow set of places that currently re-derive repo slug and sanitized branch names separately.
 
 The helper is internal-first in v1. It exists to centralize identity derivation for runtime artifacts and skill-local shell snippets, not to create a new public CLI contract.
+
+To stay aligned with `gstack`, the helper's `BRANCH` value is the sanitized artifact branch token. The generated shared preamble still owns raw `_BRANCH` capture for interactive grounding.
+
+If the helper emits shell-assignment output, it must own shell escaping for every emitted value. Consumers may only evaluate the helper's full escaped assignment contract; they may not concatenate helper-derived values into new shell fragments or partially reconstruct the contract themselves.
+
+In this spec's recommended architecture, `superpowers-slug` is a Bash-first internal helper. It must not become a new supported public PowerShell surface in v1. If a future change needs direct PowerShell parity for this helper contract itself, that should be decided explicitly in a follow-up spec rather than implied here.
+
+#### Branch Value Ownership
+
+The revised design intentionally keeps two branch representations, and they are not interchangeable:
+
+| Surface | Value Shape | Allowed Uses | Must Not Be Used For |
+| --- | --- | --- | --- |
+| `superpowers-slug` | `BRANCH` = sanitized artifact branch token | manifest names, QA/test-plan/report artifact names, branch-finish artifact paths, other filesystem-safe identifiers | interactive question grounding, user-facing branch messaging, approval semantics |
+| generated shared preamble | `_BRANCH` = raw current branch | interactive questions, branch-aware messaging, session grounding | artifact file names, manifest keys, path derivation |
+
+Concrete example:
+
+- actual branch: `feature/auth/refactor`
+- helper output: `BRANCH=feature-auth-refactor`
+- generated preamble grounding: `_BRANCH=feature/auth/refactor`
+
+If a caller needs both artifact-safe naming and user-facing grounding, it should consume both sources directly rather than transforming one into the other ad hoc.
 
 #### Primary Effect
 
@@ -241,6 +389,47 @@ Recommended sequence:
 3. update-check freshness
 4. regeneration, docs, and release notes
 
+## Code Quality Constraints
+
+This change should be implemented as a small extension of existing runtime surfaces, not as a new subsystem.
+
+### Preferred Shape
+
+The intended implementation shape is:
+
+- targeted edits to existing template files and `scripts/gen-skill-docs.mjs`
+- targeted edits to `bin/superpowers-update-check`
+- targeted edits to the existing workflow/runtime consumers that currently re-derive repo or branch identity
+- targeted additions to existing deterministic tests and routing eval coverage
+- at most one new internal helper: `bin/superpowers-slug`
+
+### DRY Rules
+
+- repo slug and sanitized branch derivation should exist in one shared implementation path
+- generated preamble branch capture should come from one generator source, not repeated skill-local shell fragments
+- late-stage description constraints should be enforced by shared contract tests, not repeated ad hoc wording checks
+
+### Naming And Boundary Rules
+
+- helper and variable names should describe ownership plainly: `superpowers-slug`, `SLUG`, `BRANCH`, `_BRANCH`
+- internal helper names must not imply public support if the contract is intentionally internal-first
+- new abstractions should be rejected if an existing helper, generator, or test harness can own the behavior cleanly
+
+### Complexity Ceiling
+
+In hold-scope mode, the implementation should be treated as suspect if it requires:
+
+- more than one new helper binary
+- new service layers or class hierarchies
+- duplicated slug/branch logic in multiple languages without a clearly owned source of truth
+- more than a small set of directly relevant file families:
+  - generator/templates
+  - runtime helpers
+  - existing workflow consumers
+  - tests/evals
+
+If the implementation appears to need materially more structure than that, the design should be challenged before coding continues.
+
 ## Risks And Failure Modes
 
 | Risk | Trigger | Failure Mode | Required Protection |
@@ -250,19 +439,268 @@ Recommended sequence:
 | Update freshness regresses current semantics | port mirrors `gstack` too literally | local-ahead or semver normalization breaks | preserve existing comparison logic and expand tests |
 | Branch grounding leaks into workflow authority | `_BRANCH` is treated as more than context | approval semantics become muddled | keep branch capture informational only |
 
+## Error And Rescue Registry
+
+This spec uses review-level named failure classes. Implementation may map them to shell exit paths, Node exceptions, PowerShell wrapper behavior, or deterministic test failures, but it may not collapse them into anonymous "something went wrong" handling.
+
+| Codepath | What Can Go Wrong | Failure Class | Rescued? | Rescue Action | User Sees |
+| --- | --- | --- | --- | --- | --- |
+| Description template rewrite | a late-stage skill loses prerequisite wording or gains an over-broad trigger | `DescriptionContractViolation` | Y | contract tests fail and block the change | explicit failing test naming the offending skill contract |
+| Routing-safety verification | broadened wording routes later than helper state allows | `RoutingSafetyRegression` | Y | routing tests or evals fail before merge | explicit routing regression output |
+| `superpowers-slug` remote derivation | repo remote is missing or unusable | `MissingGitRemote` | Y | emit deterministic fallback slug | stable fallback artifact paths rather than a crash |
+| `superpowers-slug` branch derivation | HEAD is detached or branch name is unavailable | `MissingBranchContext` | Y | emit deterministic fallback branch value | stable fallback branch-scoped paths |
+| `superpowers-slug` execution | git inspection fails unexpectedly or helper output is malformed | `SlugDerivationFailure` | Y | caller surfaces an explicit diagnostic and fails closed instead of re-deriving ad hoc | explicit helper failure rather than silent drift |
+| branch representation ownership | helper `BRANCH` is used for user-facing grounding or `_BRANCH` is used for artifact derivation | `BranchRepresentationContractViolation` | Y | contract tests fail and name the ownership mixup directly | explicit contract failure before merge |
+| update-check cache read | cache file is unreadable, malformed, or stale beyond policy | `UpdateCacheReadFailure` | Y | ignore the broken cache and recompute from fresh inputs when possible | no false "up to date" confidence from corrupt cache |
+| update-check remote lookup | remote version fetch fails or returns unusable content | `RemoteVersionFetchFailure` | Y | preserve conservative behavior and avoid writing a false success result | no misleading upgrade prompt |
+| version comparison | version text cannot be normalized safely | `InvalidVersionString` | Y | preserve current semver-aware comparison guardrails and suppress misleading output | no false upgrade/downgrade claim |
+| generated preamble branch capture | `_BRANCH` is missing from generated skill docs | `PreambleContractViolation` | Y | generated-doc contract tests fail until the generator output is corrected | explicit generation/test failure |
+| regeneration discipline | template changes are not reflected in generated docs | `GeneratedDocDrift` | Y | regeneration checks fail closed | explicit stale-generated-doc failure |
+
+### Failure Modes Registry
+
+| Codepath | Failure Mode | Rescued? | Test? | User Sees? | Logged? |
+| --- | --- | --- | --- | --- | --- |
+| description alignment | over-broad trigger text weakens stage discipline | Y | Y | pre-merge contract/eval failure | Y |
+| shared slug helper | remote or branch context missing | Y | Y | deterministic fallback behavior | N/A |
+| shared slug helper | helper fails unexpectedly | Y | Y | explicit helper diagnostic and fail-closed caller behavior | Y |
+| branch ownership split | helper `BRANCH` and `_BRANCH` are silently swapped | Y | Y | explicit contract-test failure | Y |
+| update freshness | corrupt cache state | Y | Y | no false freshness claim | Y |
+| update freshness | remote lookup fails | Y | Y | no misleading upgrade notice | Y |
+| branch grounding | `_BRANCH` omitted from generated docs | Y | Y | explicit contract-test failure | Y |
+
+No failure in this spec may ship as `RESCUED=N`, `TEST=N`, and `USER SEES=Silent`.
+
+## Security And Threat Model
+
+This change does not add a new server, auth system, secret store, or external user-facing API. Its security posture is mostly about handling local repo metadata and remote release metadata conservatively so helper behavior cannot be distorted by unsafe shell, path, or cache assumptions.
+
+### Security Invariants
+
+- workflow helpers remain the only authority for stage progression; broadened skill descriptions are not a trust-boundary bypass
+- helper-derived repo and branch values are treated as untrusted input until normalized or sanitized for their destination
+- cache state is not trusted blindly; malformed or stale cache content must be ignored rather than treated as truth
+- remote version text is not trusted until it passes existing normalization and comparison guardrails
+- no new secrets, credentials, or user-data classes are introduced by this change
+
+### Threat Model
+
+| Threat | Likelihood | Impact | Mitigation In Spec | Residual Risk |
+| --- | --- | --- | --- | --- |
+| shell-sensitive branch or remote values influence helper behavior unexpectedly | Medium | Medium | centralize slug derivation, sanitize helper `BRANCH`, quote shell-sensitive values, and fail closed on helper errors | low after deterministic helper tests |
+| helper-derived values leak into unsafe path composition | Medium | Medium | keep helper output internal-first, preserve conservative repo-relative path handling, and avoid ad hoc re-derivation by callers | low to medium if callers ignore the contract |
+| malformed cache file causes false freshness confidence | Medium | Medium | ignore unreadable or invalid cache state and recompute when possible | low |
+| remote version text causes misleading upgrade state | Low to Medium | Medium | preserve current semver normalization and invalid-version handling | low |
+| broadened descriptions weaken workflow trust boundaries | Medium | Medium | helper-first routing, prerequisite wording constraints, and routing regressions/evals | low to medium because wording changes remain judgment-sensitive |
+
+### Input Validation And Trust Boundaries
+
+Trusted inputs do not expand in this spec. The main untrusted inputs are:
+
+- git remote data used for repo identity fallback
+- current branch name or detached-HEAD state
+- cached update-check content on disk
+- remote version text returned by release lookup
+
+Required handling:
+
+- sanitize branch-derived values before using them in artifact names
+- keep raw branch or remote values out of ad hoc shell re-evaluation paths; only the helper's full escaped assignment contract may be evaluated by consumers
+- reject malformed cache content instead of degrading into false success
+- reject or suppress unusable remote version text instead of guessing
+
+### Authorization, Secrets, And Data Classification
+
+- no new authorization model is introduced
+- no new secret or credential handling is introduced
+- no PII or user-content storage is introduced
+- the main persisted data affected by this spec remains local repo/runtime metadata: repo slug, branch context, cache state, and generated docs
+
+### Dependency And Injection Posture
+
+- this spec does not require new third-party packages
+- the main injection classes to guard are shell/path injection from repo metadata and trust-boundary regression from overly broad description text
+- prompt-injection style risk is limited here because the change edits static skill descriptions rather than introducing new user-controlled prompt channels, but routing still needs explicit guardrails because descriptions influence candidate-skill discovery
+
+### Auditability
+
+This spec does not require a new security audit log. It does require explicit diagnostics and deterministic test coverage for helper failures, contract drift, and malformed cache/version inputs so security-relevant failures are visible rather than silent.
+
+## Data Flow And Interaction Edge Cases
+
+### Data Flow Tracing
+
+#### Flow 1: User Request To Safe Skill
+
+```text
+USER REQUEST
+  -> candidate description match
+  -> workflow helper state lookup
+  -> selected safe skill
+
+shadow paths:
+- ambiguous wording matches multiple candidate skills -> helper state still decides earliest safe stage
+- no useful candidate match -> helper-led routing remains conservative
+- wording implies a later stage than current artifact state -> helper wins and user stays on earlier safe stage
+- helper unavailable -> manual fallback inspection path applies
+```
+
+#### Flow 2: Repo/Branch Identity To Artifact Paths
+
+```text
+git remote + branch state
+  -> superpowers-slug
+  -> SLUG / BRANCH
+  -> consumer-specific artifact path
+
+shadow paths:
+- remote missing -> deterministic fallback slug
+- detached HEAD -> deterministic fallback branch
+- branch contains path separators or shell-significant characters -> sanitized helper `BRANCH`
+- multiple worktrees on same repo -> branch-scoped artifact paths prevent collisions
+```
+
+#### Flow 3: Update Freshness Resolution
+
+```text
+installed version + cache state + remote version
+  -> superpowers-update-check
+  -> freshness decision
+  -> user-visible upgrade signal or silence
+
+shadow paths:
+- cache corrupted -> ignore cache and recompute conservatively
+- cache stale but says UP_TO_DATE -> short TTL forces refresh
+- remote fetch fails -> no false upgrade/no false freshness claim
+- --force requested -> bypass cached decision path
+```
+
+#### Flow 4: Generated Branch Grounding
+
+```text
+current branch
+  -> generated shared preamble
+  -> _BRANCH
+  -> branch-aware question context and messaging
+
+shadow paths:
+- session persists while branch changes -> fresh preamble execution re-grounds context
+- generator update misses some skills -> generated-doc contract tests fail
+- branch name unavailable -> fallback branch value is surfaced consistently
+```
+
+### Interaction Edge Cases
+
+| Interaction | Edge Case | Handled? | How |
+| --- | --- | --- | --- |
+| prompt routing | user asks to "start implementing" while the spec is still draft | Y | helper-first routing keeps the workflow at the earlier safe stage |
+| prompt routing | user request could match multiple broadened descriptions | Y | description text suggests candidates only; helper state resolves the winner |
+| prompt routing | no description matches cleanly | Y | manual/helper fallback still routes conservatively |
+| slug derivation | repo has no `origin` remote | Y | fallback slug path remains deterministic |
+| slug derivation | repo is in detached HEAD state | Y | fallback branch behavior remains deterministic |
+| slug derivation | two worktrees exist for the same repo on different branches | Y | branch-scoped artifact paths prevent collisions |
+| update check | cache file is malformed | Y | cache is ignored rather than trusted |
+| update check | remote lookup fails during refresh | Y | no misleading upgrade result is emitted |
+| update check | user forces a refresh while a stale cache exists | Y | `--force` bypasses cache reuse |
+| generated docs | template changes land without regeneration | Y | generated-doc checks fail closed |
+| generated docs | branch changes between sessions | Y | `_BRANCH` is recaptured from the current checkout during the next run |
+
+The important rule is that edge cases in this spec should degrade toward explicit diagnostics, deterministic fallback values, or the earlier safe workflow stage. They should not degrade toward silent drift.
+
 ## Test And Verification Requirements
 
 This spec requires deterministic coverage, and Item 1 also benefits from eval coverage.
 
+### Test Diagram
+
+```text
+NEW UX FLOWS
+- natural-language request discovery against broadened skill descriptions
+- user-visible upgrade freshness signaling from update-check results
+- branch-grounded interactive question context in generated skills
+
+NEW DATA FLOWS
+- git remote + branch state -> slug helper -> artifact path consumers
+- template descriptions -> generated skill docs -> candidate-skill discovery
+- version/cache inputs -> update-check freshness decision
+- current branch -> generated preamble -> _BRANCH-backed messaging
+
+NEW CODEPATHS
+- shared slug helper success and fallback branches
+- generator-owned _BRANCH insertion path
+- update-check split TTL and --force path
+- description-contract enforcement for stage-gated and execution skills
+
+NEW INTEGRATIONS / EXTERNAL CALLS
+- git remote / branch inspection
+- remote release version lookup already owned by update-check
+- LLM/eval judgment path for routing-sensitive prompts
+
+NEW ERROR/RESCUE PATHS
+- DescriptionContractViolation
+- RoutingSafetyRegression
+- MissingGitRemote
+- MissingBranchContext
+- SlugDerivationFailure
+- BranchRepresentationContractViolation
+- UpdateCacheReadFailure
+- RemoteVersionFetchFailure
+- InvalidVersionString
+- PreambleContractViolation
+- GeneratedDocDrift
+```
+
+### Coverage Matrix
+
+| Surface | Happy Path Test | Failure / Edge Test | Test Type |
+| --- | --- | --- | --- |
+| `superpowers-slug` | normal remote and branch produce stable `SLUG/BRANCH` output | missing remote, detached HEAD, slash-heavy branch, shell-significant branch fixtures, malformed helper output handling | deterministic helper test |
+| generated `_BRANCH` preamble | generated skills include `_BRANCH` once from the shared preamble source | template changed but generated docs stale; branch field omitted from generated output | generator/contract test |
+| branch ownership contract | helper `BRANCH` stays artifact-only and `_BRANCH` stays grounding-only | swapped ownership or ad hoc transformation fails with `BranchRepresentationContractViolation` coverage | deterministic contract test |
+| description guardrails | broad-safe skills broaden safely and late-stage skills keep prerequisites | forbidden broadening phrases or missing prerequisite wording fail | deterministic contract test |
+| helper-first routing | earlier-safe stage still wins when wording sounds late-stage | helper disagreement, ambiguous candidate matches, no clean match | workflow sequencing test + routing eval |
+| update freshness | fresh remote check reports correct status and cache reuse works by policy | stale cache, corrupt cache, remote failure, invalid version text, local-ahead, `--force` | deterministic helper test |
+
+### Required Test Posture
+
+- deterministic tests are mandatory for every helper, generator, and contract path introduced here
+- Item 1 requires both deterministic contract coverage and routing-behavior coverage because the risk is model-facing, not just text-shape-facing
+- time-sensitive update-check tests should control timestamps explicitly to avoid flaky wall-clock assertions
+- helper tests must use repo fixtures for missing-remote and detached-HEAD cases rather than relying on the developer's ambient repo state
+- helper tests for any escaped shell-assignment contract must include shell-significant branch fixtures: spaces, quotes, dollar signs, and command-substitution-looking text
+
+### Hostile And Ship Tests
+
+- ship-at-2am confidence test: broadened descriptions still route to the earlier safe stage when artifact state is behind user wording
+- hostile QA test: prompts like "finish this branch", "start implementing", or "review the architecture" try to bypass the current stage and still fail closed
+- chaos test: corrupt update-check cache plus unavailable remote plus forced refresh still avoids a false success claim
+
+### Flakiness Risks
+
+- clock-sensitive TTL assertions in update-check tests
+- eval nondeterminism in routing-sensitive prompt tests
+- git fixture setup for detached HEAD and missing remotes
+
+Mitigations:
+
+- freeze or inject timestamps in deterministic tests
+- keep eval coverage narrow, explicit, and compared against a fixed prompt set
+- isolate git fixture setup inside dedicated test fixtures/scripts
+
+### Eval Policy For Item 1
+
+Item 1 must not rely on deterministic description-contract tests alone. At least one focused routing eval suite is required before merge for any change that broadens late-stage skill discoverability, because candidate-skill drift is the failure mode most likely to escape purely deterministic checks.
+
 ### Deterministic Tests
 
-- helper tests for `superpowers-slug` covering normal remotes, missing remotes, slash branches, and detached HEAD fallback
+- helper tests for `superpowers-slug` covering normal remotes, missing remotes, slash branches, shell-significant branch fixtures, and detached HEAD fallback
 - contract tests that generated preambles include `_BRANCH`
+- contract tests that helper `BRANCH` is only used for artifact-safe identifiers and `_BRANCH` is only used for grounding
 - contract tests that late-stage skill descriptions still encode prerequisites
 - update-check tests for `--force`, split TTL behavior, semver normalization, and local-ahead handling
 - workflow sequencing tests that helper-first routing language remains intact
 
-### Optional Eval Coverage
+### Eval Coverage
 
 Expand routing evals so prompts that sound late-stage still route to the earlier safe stage when helper state requires it.
 
@@ -282,6 +720,152 @@ Examples:
 - update checks detect new versions faster while preserving current Superpowers version semantics
 - the change remains a narrow alignment package rather than expanding into broader upstream-sync policy or product-surface growth
 
+## Performance Posture
+
+This spec does not introduce a high-throughput runtime path. Its performance bar is about avoiding unnecessary local process churn and preserving the current cheapness of common workflow operations.
+
+### Main Performance Risks
+
+- repeated git inspection in multiple consumers instead of one shared slug/branch derivation path
+- repeated regeneration or broad file rewrites when only targeted template/generator changes are needed
+- update-check freshness changes that increase remote fetch frequency without improving correctness
+- routing tests or evals that become so broad they dominate development feedback time
+
+### Expected Performance Rules
+
+- repo and branch identity should be derived once per caller path, not re-parsed ad hoc in several shell fragments
+- the shared slug helper should reduce duplicated work overall, not add another layer that callers bypass
+- update-check freshness should use the cache policy to reduce unnecessary remote requests while still shortening stale `UP_TO_DATE` windows
+- generated-doc validation should stay focused on direct contract drift, not force unrelated regeneration work
+
+### Stress Perspective
+
+At 10x or 100x human usage, the likely breakpoints are still:
+
+- too many redundant local process invocations
+- flaky or slow eval suites becoming part of the merge gate
+- unnecessary remote version checks under repeated interactive startup
+
+The spec's answer is not deeper optimization work. It is disciplined ownership:
+
+- one derivation path for slug/branch identity
+- one generator-owned preamble source for `_BRANCH`
+- bounded, purposeful eval coverage
+- cache TTLs that improve truthfulness without creating gratuitous network chatter
+
+## Observability And Debuggability
+
+This spec does not justify a new telemetry system. Its observability bar is that regressions in helper behavior, generated-doc contracts, or routing safety must be visible quickly to a developer or reviewer using the repo's normal local and CI surfaces.
+
+### Required Visibility Surfaces
+
+- deterministic helper tests must fail with named contract or failure-class context, not generic assertion noise
+- routing-sensitive regressions must be visible through focused eval output tied to the specific prompt set
+- generated-doc drift must remain visible through generator/contract checks
+- update-check freshness failures must remain visible through helper tests and explicit helper diagnostics
+- workflow-safe fallback behavior must stay explainable through existing workflow inspection surfaces rather than hidden inside prompt wording
+
+### Debuggability Rules
+
+- when shared slug derivation fails, callers should surface an explicit diagnostic instead of silently re-deriving values differently
+- when `_BRANCH` grounding is missing, the failure should be discoverable from generated-doc checks or rendered generated docs
+- when update freshness behaves unexpectedly, the relevant cache-policy branch should be inferable from deterministic tests and helper output
+- when Item 1 regresses, reviewers should be able to see both the deterministic contract failure and the focused routing-eval result
+
+### Out Of Scope For This Change
+
+- no new metrics or tracing pipeline
+- no new dashboard or alerting system
+- no new admin/debug UI beyond existing helper/test/review surfaces
+
+The intent is not to under-invest in observability. It is to keep this change aligned with the repo's actual operating model: local helpers, generated docs, deterministic tests, focused evals, and review-time inspection tools.
+
+## Deployment And Rollout
+
+This change does not need a runtime feature flag. Its rollout safety comes from sequencing, test gates, and easy reversibility.
+
+### Rollout Order
+
+1. land the shared slug/helper and `_BRANCH` grounding foundation
+2. land description broadening together with deterministic routing guardrails and the required focused routing eval suite
+3. land update-check freshness changes with deterministic cache/version coverage
+4. regenerate docs, update release notes, and confirm contract checks pass on the final combined diff
+
+### Release Gates
+
+Before merge, the rollout must have:
+
+- passing deterministic helper, generator, and workflow tests for all touched paths
+- the required focused routing eval suite for Item 1
+- regenerated skill docs in sync with template/generator changes
+- `RELEASE-NOTES.md` coverage for the user-visible runtime behavior changes
+
+### Rollback Posture
+
+If the combined change regresses:
+
+- revert description broadening first if routing confidence is affected
+- revert shared-helper adoption sites if artifact-path truth changes
+- revert update-check freshness independently if release signaling becomes misleading
+- keep workflow-helper authority untouched so fallback-to-earlier-safe-stage remains available throughout rollback
+
+### Deploy-Time Risk Window
+
+The main deploy-time risk is not partial infrastructure migration. It is merging a logically coupled set of helper/template/test changes out of order. The rollout should therefore prefer small but coherent slices that remain individually testable.
+
+### Post-Merge Verification
+
+After merge or before release packaging:
+
+- run the helper and contract test suite on the merged branch
+- confirm generated docs are clean and up to date
+- verify the routing eval for Item 1 still passes against the merged prompt set
+- verify release notes or equivalent documentation mention the new runtime behavior accurately
+
+## Long-Term Trajectory
+
+This spec should leave Superpowers in a more intentional state, not a more coupled one.
+
+### Desired 12-Month Outcome
+
+A year from now, success looks like:
+
+- borrowed-layer ergonomics are cleaner and less duplicated than they were before this change
+- workflow routing is still clearly helper-owned, even after broader natural-language discovery
+- repo and branch identity derivation still has one obvious source of truth
+- update-check freshness is more truthful without having expanded into a broader release-notification subsystem
+- no one mistakes this spec for a standing requirement to mirror `gstack` feature-for-feature
+
+### Path Dependency And Reversibility
+
+This change is intentionally reversible:
+
+- description broadening can be rolled back independently if routing confidence erodes
+- shared slug-helper adoption can be rolled back to prior inline derivation if the helper contract proves wrong
+- update freshness can be tuned or reverted independently without changing workflow authority
+- `_BRANCH` grounding can remain a shared preamble concern without becoming an approval-state dependency
+
+The main long-term risk is not technical lock-in; it is conceptual drift. If future changes start treating this narrow alignment as evidence that Superpowers should automatically absorb every upstream `gstack` refinement, the project will lose architectural clarity.
+
+### Ecosystem Fit
+
+This spec fits the repo's current direction because it:
+
+- strengthens existing helper/generator/test surfaces instead of introducing a parallel subsystem
+- preserves repo-tracked docs and helper-owned routing as the core workflow architecture
+- keeps the borrowed layer explicit and reviewable rather than letting drift accumulate invisibly
+
+### One-Year Readability Test
+
+A new engineer reading this spec in 12 months should be able to answer four questions quickly:
+
+1. what did we borrow from `gstack` here?
+2. what did we intentionally not borrow?
+3. why are descriptions allowed to broaden without owning routing?
+4. when would we revisit whether this borrowed layer needs a broader policy?
+
+If the spec stops answering those questions cleanly, it has become too muddy and should be revised rather than treated as permanent doctrine.
+
 ## Alternatives Considered
 
 ### Direct Parity Backport
@@ -299,4 +883,3 @@ Rejected because it is a different project. This spec is intentionally narrow an
 ## Deferred Work
 
 If Superpowers continues borrowing substantial new `gstack` surface area, a separate future spec may define how recurring upstream drift should be reviewed. That is explicitly deferred from this change.
-
