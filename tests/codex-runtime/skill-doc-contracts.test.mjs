@@ -37,7 +37,18 @@ test('generated preamble bash block includes shared runtime-root, session, and c
     assert.ok(bashBlock, `${skill} should include a preamble bash block`);
     assert.match(bashBlock, /_IS_SUPERPOWERS_RUNTIME_ROOT\(\)/, `${skill} should define runtime-root detection`);
     assert.match(bashBlock, /_SESSIONS=/, `${skill} should track session count`);
+    assert.match(bashBlock, /_BRANCH=/, `${skill} should capture raw branch grounding`);
     assert.match(bashBlock, /_CONTRIB=/, `${skill} should load contributor state`);
+  }
+});
+
+test('branch-aware skill docs consume the slug helper instead of inline sanitization fragments', () => {
+  for (const skill of ['qa-only', 'plan-eng-review', 'finishing-a-development-branch']) {
+    const content = readUtf8(getSkillPath(skill));
+    assert.match(content, /bin\/superpowers-slug/, `${skill} should use the shared slug helper`);
+    assert.doesNotMatch(content, /SAFE_BRANCH=\$\(/, `${skill} should not inline branch sanitization`);
+    assert.doesNotMatch(content, /(?:^|[^_])BRANCH=\$\(git rev-parse --abbrev-ref HEAD/, `${skill} should not inline raw branch capture`);
+    assert.doesNotMatch(content, /SLUG=\$\(printf '%s\\n' "\$REMOTE_URL"/, `${skill} should not inline repo slug derivation`);
   }
 });
 

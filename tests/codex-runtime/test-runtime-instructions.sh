@@ -273,6 +273,11 @@ done
 
 echo "Generated skills use marker-based current-repo detection."
 
+if [[ ! -x "bin/superpowers-slug" ]]; then
+  echo "Expected bin/superpowers-slug to exist and be executable."
+  exit 1
+fi
+
 if rg -n -F 'multi_agent = true' \
   .codex/INSTALL.md \
   docs/README.codex.md \

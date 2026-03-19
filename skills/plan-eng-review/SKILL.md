@@ -16,6 +16,9 @@ _IS_SUPERPOWERS_RUNTIME_ROOT() {
   [ -f "$candidate/VERSION" ]
 }
 _REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo current)
+[ -n "$_BRANCH" ] || _BRANCH="current"
+[ "$_BRANCH" != "HEAD" ] || _BRANCH="current"
 _SUPERPOWERS_ROOT=""
 _IS_SUPERPOWERS_RUNTIME_ROOT "$_REPO_ROOT" && _SUPERPOWERS_ROOT="$_REPO_ROOT"
 [ -z "$_SUPERPOWERS_ROOT" ] && _IS_SUPERPOWERS_RUNTIME_ROOT "$HOME/.superpowers/install" && _SUPERPOWERS_ROOT="$HOME/.superpowers/install"
@@ -258,11 +261,7 @@ For LLM or prompt changes, check the repo's prompt or evaluation docs. If this p
 After producing the test diagram, write a QA handoff artifact for cross-session reuse:
 
 ```bash
-REMOTE_URL=$(git remote get-url origin 2>/dev/null || true)
-SLUG=$(printf '%s\n' "$REMOTE_URL" | sed 's|.*[:/]\([^/]*/[^/]*\)\.git$|\1|;s|.*[:/]\([^/]*/[^/]*\)$|\1|' | tr '/' '-')
-[ -n "$SLUG" ] || SLUG=$(basename "$_REPO_ROOT")
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
-SAFE_BRANCH=$(printf '%s\n' "$BRANCH" | sed 's/[^[:alnum:]._-]/-/g')
+eval "$("$_SUPERPOWERS_ROOT/bin/superpowers-slug")"
 USER=$(whoami)
 DATETIME=$(date +%Y%m%d-%H%M%S)
 mkdir -p "$_SP_STATE_DIR/projects/$SLUG"
