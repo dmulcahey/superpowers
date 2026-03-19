@@ -513,9 +513,7 @@ Expected: PASS
 - [x] **Step 5: Run the required Item 1 eval one last time on the combined diff**
 Run the full checked-in Item 1 orchestration flow again against the merged repo-versioned minimum scenario matrix and require a passing judge verdict plus fingerprinted per-scenario evidence, even though the same full matrix already ran in Task 2.
 
-- [ ] **Step 6: Commit the final documentation and verification slice**
-
-  **Execution Note:** Active - Commit the final documentation and verification slice
+- [x] **Step 6: Commit the final documentation and verification slice**
 ```bash
 git add RELEASE-NOTES.md
 git add skills/*/SKILL.md

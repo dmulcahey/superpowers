@@ -242,3 +242,20 @@
 **Verification:**
 - Manual inspection only: A fresh second full-matrix run at `~/.superpowers/projects/dmulcahey-superpowers/routing-evals/using-superpowers-routing-r3/run-20260319T211039Z/` passed all eight scenarios with fresh runner and judge agents, the same scenario fingerprint `b30697ffeb2be8e8cb406608e60dfc23ce94c66a8a47559f6379bc964c18c5df`, persisted raw runner outputs under `runner-outputs/`, and persisted per-scenario evidence bundles under `evidence/`.
 **Invalidation Reason:** N/A
+
+### Task 4 Step 6
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-19T21:24:35Z
+**Execution Source:** superpowers:subagent-driven-development
+**Claim:** Committed the final documentation and verification slice in 31cebf9cab7ef0a5d191f49c84c7941e291653cd, capturing the release notes, version bump, revised approved spec and plan, testing docs, and accumulated execution evidence for borrowed-layer alignment.
+**Files:**
+- RELEASE-NOTES.md
+- VERSION
+- docs/superpowers/execution-evidence/2026-03-19-gstack-borrowed-layer-alignment-r2-evidence.md
+- docs/superpowers/plans/2026-03-19-gstack-borrowed-layer-alignment.md
+- docs/superpowers/specs/2026-03-18-gstack-borrowed-layer-alignment-design.md
+- docs/testing.md
+**Verification:**
+- Manual inspection only: Inspected commit 31cebf9 after the full deterministic matrix passed and the second full Item 1 routing eval passed with persisted evidence under ~/.superpowers/projects/dmulcahey-superpowers/routing-evals/using-superpowers-routing-r3/run-20260319T211039Z/.
+**Invalidation Reason:** N/A
