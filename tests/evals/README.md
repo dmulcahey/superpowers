@@ -1,6 +1,9 @@
 # Eval Tests
 
-These tests are opt-in. They are not part of the default deterministic validation flow.
+This directory contains two evaluation surfaces:
+
+- opt-in Node-based `.eval.mjs` tests that are not part of the default deterministic validation flow
+- the `using-superpowers` routing gate, which remains a required change-specific gate for Item 1 routing-safety work
 
 ## Purpose
 
@@ -14,18 +17,18 @@ Current evals cover:
 
 ## How To Run
 
-Required environment:
+Set these environment variables when you want the Node-based `.eval.mjs` tests to execute instead of skip:
 
 - `EVALS=1`
 - `OPENAI_API_KEY`
 - `EVAL_MODEL`
 
-Optional environment:
+Optional environment for the Node-based `.eval.mjs` tests:
 
 - `SUPERPOWERS_STATE_DIR` to control where eval logs are written
 - `EVAL_INPUT_COST_PER_1M` and `EVAL_OUTPUT_COST_PER_1M` to estimate USD cost from token usage
 
-Run from the repo root:
+Run the Node-based evals from the repo root:
 
 ```bash
 EVALS=1 \
@@ -34,7 +37,7 @@ EVAL_MODEL=... \
 node --test tests/evals/*.eval.mjs
 ```
 
-Targeted workflow-contract run:
+Targeted Node-based workflow-contract run:
 
 ```bash
 EVALS=1 \
@@ -46,6 +49,8 @@ node --test tests/evals/interactive-question-format.eval.mjs tests/evals/review-
 Routing eval note:
 
 - `using-superpowers` routing is driven by the markdown orchestrator/runner/judge files listed below, not by `node --test`
+- the routing gate does not use `tests/evals/helpers/openai-judge.mjs`
+- the routing gate does not require the Node-based `.eval.mjs` environment variables above just to execute the runner/judge flow
 
 ## Routing Eval
 

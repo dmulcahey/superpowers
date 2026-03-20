@@ -786,8 +786,53 @@ if ! rg -n -F 'bash tests/codex-runtime/test-superpowers-plan-execution.sh' docs
   exit 1
 fi
 
+if ! rg -n -F 'bash tests/codex-runtime/test-superpowers-slug.sh' docs/testing.md >/dev/null; then
+  echo "docs/testing.md should include the slug helper regression in the recommended validation order."
+  exit 1
+fi
+
 if ! rg -n -F 'node --test tests/brainstorm-server/server.test.js tests/brainstorm-server/ws-protocol.test.js' docs/testing.md >/dev/null; then
   echo "docs/testing.md should document the full brainstorm-server node test command, not only npm test."
+  exit 1
+fi
+
+if ! rg -n -F 'three primary automated validation surfaces plus opt-in or change-specific eval gates' docs/testing.md >/dev/null; then
+  echo "docs/testing.md should distinguish the primary deterministic suites from the opt-in or change-specific eval gates."
+  exit 1
+fi
+
+if ! rg -n -F 'This gate is agent-executed and does not run through `node --test` or the Node OpenAI-judge helper path.' docs/testing.md >/dev/null; then
+  echo "docs/testing.md should distinguish the agent-executed routing gate from the Node eval helper path."
+  exit 1
+fi
+
+if ! rg -n -F 'It is not part of the default deterministic validation order, but it is a required change-specific gate for Item 1 routing-safety work.' docs/testing.md >/dev/null; then
+  echo "docs/testing.md should describe the routing gate as change-specific required coverage, not a generic optional eval."
+  exit 1
+fi
+
+if ! rg -n -F 'the `using-superpowers` routing gate, which remains a required change-specific gate for Item 1 routing-safety work' tests/evals/README.md >/dev/null; then
+  echo "tests/evals/README.md should distinguish the required routing gate from the opt-in Node-based evals."
+  exit 1
+fi
+
+if ! rg -n -F 'Set these environment variables when you want the Node-based `.eval.mjs` tests to execute instead of skip:' tests/evals/README.md >/dev/null; then
+  echo "tests/evals/README.md should explain that the Node-based eval env vars control whether the evals execute instead of skip."
+  exit 1
+fi
+
+if ! rg -n -F 'Optional environment for the Node-based `.eval.mjs` tests:' tests/evals/README.md >/dev/null; then
+  echo "tests/evals/README.md should scope the optional env vars to the Node-based evals."
+  exit 1
+fi
+
+if ! rg -n -F 'the routing gate does not use `tests/evals/helpers/openai-judge.mjs`' tests/evals/README.md >/dev/null; then
+  echo "tests/evals/README.md should state that the routing gate is not driven by the Node OpenAI judge helper."
+  exit 1
+fi
+
+if ! rg -n -F 'See `tests/evals/README.md` for the Node-based eval environment variables and for routing-eval logging behavior' docs/testing.md >/dev/null; then
+  echo "docs/testing.md should point readers to the README with scoped eval-env wording."
   exit 1
 fi
 

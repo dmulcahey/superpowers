@@ -19,6 +19,8 @@
 
 ## What Already Exists
 
+Historical note: this section captures the draft-time repo state before the plan was executed. For the current shipped state, use the repo contents plus `docs/superpowers/execution-evidence/2026-03-19-gstack-borrowed-layer-alignment-r2-evidence.md`.
+
 - `scripts/gen-skill-docs.mjs` already owns the shared generated preamble for all templated skills.
 - `bin/superpowers-workflow-status` already derives branch-scoped manifest paths, but it still inlines slug and safe-branch derivation.
 - `skills/qa-only/SKILL.md.tmpl`, `skills/plan-eng-review/SKILL.md.tmpl`, and `skills/finishing-a-development-branch/SKILL.md.tmpl` already derive sanitized branch values inline for artifact lookup.
@@ -522,7 +524,9 @@ git add tests/codex-runtime/*.sh tests/codex-runtime/*.mjs tests/evals/using-sup
 git commit -m "docs: record borrowed-layer alignment changes"
 ```
 
-## Ready-For-Review Checklist
+## Historical Ready-For-Review Checklist
+
+This checklist is retained as the draft-time review gate captured before engineering approval and execution. Use the plan headers above and `docs/superpowers/execution-evidence/2026-03-19-gstack-borrowed-layer-alignment-r2-evidence.md` for the current state of this artifact, not the unchecked historical items below.
 
 - [ ] `docs/superpowers/specs/2026-03-18-gstack-borrowed-layer-alignment-design.md` is re-approved as `CEO Approved` with `Spec Revision: 3`
 - [ ] `docs/superpowers/plans/2026-03-19-gstack-borrowed-layer-alignment.md` stays `Draft` with `Plan Revision: 2` and `Execution Mode: none` until engineering review resolves
