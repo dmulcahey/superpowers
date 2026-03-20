@@ -1,3 +1,10 @@
 . (Join-Path $PSScriptRoot 'superpowers-runtime-common.ps1')
 Invoke-SuperpowersRuntime -EntryRelative 'runtime/core-helpers/dist/superpowers-config.cjs' -Arguments $args
-exit $script:SuperpowersRuntimeExitCode
+$exitCode = [int]$script:SuperpowersRuntimeExitCode
+try {
+  $host.SetShouldExit($exitCode)
+  return
+}
+catch {
+  exit $exitCode
+}

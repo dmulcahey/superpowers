@@ -50,6 +50,9 @@ function Invoke-SuperpowersRuntime {
 
   $script:SuperpowersRuntimeExitCode = 0
   $installRoot = Get-SuperpowersInstallRoot
+  $restoreNativeExitPreference = $false
+  $nativeExitPreference = $null
+  $nativeExitVariable = Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue
 
   try {
     $nodePath = Get-SuperpowersNodePath
@@ -75,13 +78,26 @@ function Invoke-SuperpowersRuntime {
     return
   }
 
-  & $nodePath --check $entryPath *> $null
-  if ($LASTEXITCODE -ne 0) {
-    Write-SuperpowersRuntimeFailure 'RuntimeArtifactInvalid' "Invalid runtime bundle: $EntryRelative"
-    $script:SuperpowersRuntimeExitCode = 1
-    return
+  if ($nativeExitVariable) {
+    $nativeExitPreference = $nativeExitVariable.Value
+    $PSNativeCommandUseErrorActionPreference = $false
+    $restoreNativeExitPreference = $true
   }
 
-  & $nodePath $entryPath @Arguments
-  $script:SuperpowersRuntimeExitCode = $LASTEXITCODE
+  try {
+    & $nodePath --check $entryPath *> $null
+    if ($LASTEXITCODE -ne 0) {
+      Write-SuperpowersRuntimeFailure 'RuntimeArtifactInvalid' "Invalid runtime bundle: $EntryRelative"
+      $script:SuperpowersRuntimeExitCode = 1
+      return
+    }
+
+    & $nodePath $entryPath @Arguments
+    $script:SuperpowersRuntimeExitCode = $LASTEXITCODE
+  }
+  finally {
+    if ($restoreNativeExitPreference) {
+      $PSNativeCommandUseErrorActionPreference = $nativeExitPreference
+    }
+  }
 }

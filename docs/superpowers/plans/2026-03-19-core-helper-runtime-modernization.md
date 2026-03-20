@@ -493,7 +493,7 @@ Expected: PASS
 Run: `bash tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh`
 Expected: PASS with the targeted migrated wrappers no longer depending on Bash.
 
-- [ ] **Step 7: Commit the config slice**
+- [x] **Step 7: Commit the config slice**
 ```bash
 git add bin/superpowers-runtime-common.sh bin/superpowers-runtime-common.ps1 bin/superpowers-config bin/superpowers-config.ps1 runtime/core-helpers tests/codex-runtime/config-core.test.mjs tests/codex-runtime/config-cli.test.mjs tests/codex-runtime/test-core-helper-runtime-launch.sh tests/codex-runtime/test-superpowers-config.sh tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh
 git commit -m "feat: port superpowers-config to bundled runtime"
@@ -521,7 +521,7 @@ git commit -m "feat: port superpowers-config to bundled runtime"
 - Test: `bash tests/codex-runtime/test-superpowers-workflow.sh`
 - Test: `bash tests/codex-runtime/test-workflow-sequencing.sh`
 
-- [ ] **Step 1: Extend workflow-status tests with Node-native coverage, explicit parity expectations, and a temporary equivalence harness**
+- [x] **Step 1: Extend workflow-status tests with Node-native coverage, explicit parity expectations, and a temporary equivalence harness**
 ```bash
 # Keep assertions for:
 # - core/workflow-status routing and manifest logic directly under node --test
@@ -534,7 +534,7 @@ git commit -m "feat: port superpowers-config to bundled runtime"
 # - legacy shell helper and direct Node CLI match on representative fixture cases
 ```
 
-- [ ] **Step 2: Run the red workflow-status suites**
+- [x] **Step 2: Run the red workflow-status suites**
 Run: `node --test tests/codex-runtime/workflow-status-core.test.mjs tests/codex-runtime/workflow-status-cli.test.mjs`
 Expected: FAIL because the workflow-status core and CLI adapter do not yet preserve the helper contract.
 
@@ -547,7 +547,7 @@ Expected: FAIL because the Node-backed implementation does not yet preserve the 
 Run: `bash tests/codex-runtime/test-superpowers-workflow.sh`
 Expected: FAIL if the public workflow CLI no longer matches the helper behavior.
 
-- [ ] **Step 3: Port the workflow core with typed state and failure outputs**
+- [x] **Step 3: Port the workflow core with typed state and failure outputs**
 ```ts
 export type WorkflowStatusResult =
   | { kind: 'resolved'; status: string; nextSkill: string; specPath: string; planPath: string; reason?: string }
@@ -558,16 +558,16 @@ export type WorkflowStatusResult =
 // - full repo/spec/plan discovery should only happen on refresh or recovery paths
 ```
 
-- [ ] **Step 4: Run temporary old-vs-new equivalence checks before wrapper replacement**
+- [x] **Step 4: Run temporary old-vs-new equivalence checks before wrapper replacement**
 Run: `bash tests/codex-runtime/test-superpowers-workflow-status-equivalence.sh`
 Expected: PASS with the legacy shell helper and direct Node CLI producing matching representative outputs on the chosen fixtures.
 
-- [ ] **Step 5: Replace the shipped workflow-status wrappers with bundled runtime launch**
+- [x] **Step 5: Replace the shipped workflow-status wrappers with bundled runtime launch**
 ```bash
 superpowers_run_node_runtime "$(superpowers_install_root)/runtime/core-helpers/dist/superpowers-workflow-status.cjs" "$@"
 ```
 
-- [ ] **Step 6: Rebuild and rerun the workflow suites**
+- [x] **Step 6: Rebuild and rerun the workflow suites**
 Run: `npm --prefix runtime/core-helpers run build`
 Expected: PASS and refresh `runtime/core-helpers/dist/superpowers-workflow-status.cjs`.
 
@@ -584,6 +584,8 @@ Run: `bash tests/codex-runtime/test-workflow-sequencing.sh`
 Expected: PASS
 
 - [ ] **Step 7: Commit the workflow-status slice**
+
+  **Execution Note:** Active - Commit the workflow-status slice
 ```bash
 git add bin/superpowers-workflow-status bin/superpowers-workflow-status.ps1 runtime/core-helpers tests/codex-runtime/workflow-status-core.test.mjs tests/codex-runtime/workflow-status-cli.test.mjs tests/codex-runtime/test-superpowers-workflow-status-equivalence.sh tests/codex-runtime/test-superpowers-workflow-status.sh tests/codex-runtime/test-superpowers-workflow.sh tests/codex-runtime/test-workflow-sequencing.sh
 git commit -m "feat: port workflow-status to bundled runtime"

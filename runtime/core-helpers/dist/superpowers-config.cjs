@@ -79,6 +79,9 @@ var import_node_path = __toESM(require("node:path"), 1);
 function pathExists(filePath) {
   return import_node_fs.default.existsSync(filePath);
 }
+function ensureDirectoryExists(directoryPath) {
+  import_node_fs.default.mkdirSync(directoryPath, { recursive: true });
+}
 function readTextFileIfExists(filePath) {
   if (!pathExists(filePath)) {
     return "";
@@ -86,7 +89,7 @@ function readTextFileIfExists(filePath) {
   return import_node_fs.default.readFileSync(filePath, "utf8");
 }
 function writeTextFileAtomic(filePath, contents) {
-  import_node_fs.default.mkdirSync(import_node_path.default.dirname(filePath), { recursive: true });
+  ensureDirectoryExists(import_node_path.default.dirname(filePath));
   const tempPath = `${filePath}.tmp-${process.pid}-${Date.now()}`;
   import_node_fs.default.writeFileSync(tempPath, contents, "utf8");
   import_node_fs.default.renameSync(tempPath, filePath);

@@ -319,3 +319,109 @@
 **Verification:**
 - `npm --prefix runtime/core-helpers run build && node --test tests/codex-runtime/config-core.test.mjs tests/codex-runtime/config-cli.test.mjs && bash tests/codex-runtime/test-core-helper-runtime-launch.sh && bash tests/codex-runtime/test-superpowers-config.sh && bash tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh && npm --prefix runtime/core-helpers run build:check` -> PASS
 **Invalidation Reason:** N/A
+
+### Task 3 Step 7
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-20T02:57:38Z
+**Execution Source:** superpowers:subagent-driven-development
+**Claim:** Committed the config runtime slice in d713806.
+**Files:**
+- bin/superpowers-config
+- bin/superpowers-config.ps1
+- bin/superpowers-runtime-common.ps1
+- bin/superpowers-runtime-common.sh
+- docs/superpowers/execution-evidence/2026-03-19-core-helper-runtime-modernization-r2-evidence.md
+- docs/superpowers/plans/2026-03-19-core-helper-runtime-modernization.md
+- runtime/core-helpers/dist/superpowers-config.cjs
+- runtime/core-helpers/src/cli/superpowers-config.ts
+- runtime/core-helpers/src/core/config.ts
+- runtime/core-helpers/src/core/errors.ts
+- runtime/core-helpers/src/platform/filesystem.ts
+- tests/codex-runtime/config-cli.test.mjs
+- tests/codex-runtime/config-core.test.mjs
+- tests/codex-runtime/test-core-helper-runtime-launch.sh
+- tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh
+- tests/codex-runtime/test-superpowers-config.sh
+**Verification:**
+- Manual inspection only: Committed the Task 3 config runtime port in d713806 after the rebuilt bundle and the targeted node, shell, and PowerShell suites all passed.
+**Invalidation Reason:** N/A
+
+### Task 4 Step 1
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-20T03:08:53Z
+**Execution Source:** superpowers:subagent-driven-development
+**Claim:** Added workflow-status Node-native coverage and a temporary legacy-vs-bundled equivalence harness.
+**Files:**
+- tests/codex-runtime/test-superpowers-workflow-status-equivalence.sh
+- tests/codex-runtime/workflow-status-cli.test.mjs
+- tests/codex-runtime/workflow-status-core.test.mjs
+**Verification:**
+- Manual inspection only: Added red coverage for pure workflow-state classification, bundled CLI manifest behavior, and representative legacy-vs-bundled parity cases.
+**Invalidation Reason:** N/A
+
+### Task 4 Step 2
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-20T03:09:23Z
+**Execution Source:** superpowers:subagent-driven-development
+**Claim:** Ran the workflow-status red suites and confirmed the new bundled-runtime coverage fails against the current stub implementation.
+**Files:**
+- None (no repo file changed)
+**Verification:**
+- `node --test tests/codex-runtime/workflow-status-core.test.mjs tests/codex-runtime/workflow-status-cli.test.mjs && bash tests/codex-runtime/test-superpowers-workflow-status-equivalence.sh && bash tests/codex-runtime/test-superpowers-workflow-status.sh && bash tests/codex-runtime/test-superpowers-workflow.sh` -> FAIL: the new core module does not exist yet, the bundled CLI still reports 'Not implemented: superpowers-workflow-status', and the temporary equivalence harness diverges while the legacy shell regression suites remain green before wrapper replacement.
+**Invalidation Reason:** N/A
+
+### Task 4 Step 3
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-20T03:17:29Z
+**Execution Source:** superpowers:subagent-driven-development
+**Claim:** Ported workflow-status to the bundled runtime with manifest recovery, resolve/expect/sync behavior, and the manifest-backed fast path preserved.
+**Files:**
+- runtime/core-helpers/src/cli/superpowers-workflow-status.ts
+- runtime/core-helpers/src/core/workflow-status.ts
+- runtime/core-helpers/src/platform/filesystem.ts
+- runtime/core-helpers/src/platform/paths.ts
+**Verification:**
+- Manual inspection only: The bundled TypeScript command now matches the legacy helper on representative draft, approved-spec-no-plan, implementation-ready, resolve, and summary cases.
+**Invalidation Reason:** N/A
+
+### Task 4 Step 4
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-20T03:18:07Z
+**Execution Source:** superpowers:subagent-driven-development
+**Claim:** Verified representative legacy shell and bundled-runtime workflow-status cases match before replacing the shipped wrapper.
+**Files:**
+- None (no repo file changed)
+**Verification:**
+- `bash tests/codex-runtime/test-superpowers-workflow-status-equivalence.sh` -> PASS
+**Invalidation Reason:** N/A
+
+### Task 4 Step 5
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-20T03:23:03Z
+**Execution Source:** superpowers:subagent-driven-development
+**Claim:** Replaced the shipped workflow-status shell and PowerShell wrappers with bundled-runtime launchers and updated the Windows wrapper regression for direct Node execution.
+**Files:**
+- bin/superpowers-workflow-status
+- bin/superpowers-workflow-status.ps1
+- tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh
+**Verification:**
+- Manual inspection only: The shipped wrapper surface now points at the bundled workflow-status runtime, and the Windows regression expects direct Node launch instead of Git Bash for this migrated helper.
+**Invalidation Reason:** N/A
+
+### Task 4 Step 6
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-20T03:28:51Z
+**Execution Source:** superpowers:subagent-driven-development
+**Claim:** Rebuilt the bundled workflow-status artifact and reran the workflow-status, public workflow, sequencing, and PowerShell wrapper suites until they all passed against the migrated wrapper surface.
+**Files:**
+- None (no repo file changed)
+**Verification:**
+- `npm --prefix runtime/core-helpers run build && node --test tests/codex-runtime/workflow-status-core.test.mjs tests/codex-runtime/workflow-status-cli.test.mjs && bash tests/codex-runtime/test-superpowers-workflow-status.sh && bash tests/codex-runtime/test-superpowers-workflow.sh && bash tests/codex-runtime/test-workflow-sequencing.sh && bash tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh && npm --prefix runtime/core-helpers run build:check` -> PASS
+**Invalidation Reason:** N/A
