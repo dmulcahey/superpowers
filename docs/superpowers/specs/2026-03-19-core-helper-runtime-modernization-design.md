@@ -1,14 +1,16 @@
 # Core Helper Runtime Modernization
 
-**Workflow State:** CEO Approved
-**Spec Revision:** 1
-**Last Reviewed By:** plan-ceo-review
+**Workflow State:** Draft
+**Spec Revision:** 2
+**Last Reviewed By:** brainstorming
 
 ## Summary
 
 Modernize the core Superpowers helper runtime by moving the workflow, execution, and config helpers from shell-first implementations to a TypeScript/Node core while preserving the existing command names and external CLI behavior.
 
 The goal is not a CLI redesign. The goal is to keep the public helper surface stable while making the implementation easier to test, easier to maintain, and easier to run consistently across macOS and Windows.
+
+As part of that same modernization, the retained `tests/codex-runtime/test-*.sh` shell suite should become parallel-safe by construction and run through one canonical deterministic parallel runner. The long-term test end state is Node-heavy behavioral coverage plus a smaller, durable shell contract layer that always executes in parallel.
 
 The migration starts with the highest-leverage core helpers:
 
@@ -33,6 +35,8 @@ That has three costs:
 - behavior is harder to express and verify with precise fixtures and assertions
 - Windows support depends on PowerShell wrappers delegating into Bash, which adds avoidable complexity
 
+It also leaves the remaining shell suite with unnecessary shared-state coupling. The current runtime-launch regression test mutates checked-in bundled artifacts in the working checkout to simulate missing or invalid bundles, which makes the retained shell layer unsafe to run concurrently even though the target architecture wants that layer to be small, deterministic, and fast.
+
 The repository already gets value from deterministic Node-based tests and generators, but the most stateful helper behavior is still implemented in Bash. That leaves too much logic in a language that is awkward for structured data, typed invariants, atomic file updates, and rich test tooling.
 
 ## Goals
@@ -44,6 +48,7 @@ The repository already gets value from deterministic Node-based tests and genera
 - Improve Windows support for core helpers and make removal of the Git Bash dependency the long-term direction.
 - Keep the migration incremental so the runtime can be verified command-by-command.
 - Standardize the core helper runtime on Node 20 LTS as the minimum supported runtime version.
+- Make the retained durable shell suite parallel-safe and give it a canonical parallel runner with deterministic reporting.
 
 ## Not In Scope
 
@@ -276,6 +281,53 @@ Keep a smaller shell-focused contract layer for:
 - Windows path normalization at the wrapper boundary
 - verification that the installed command names still behave as expected
 
+The retained shell suite should remain focused on durable wrapper, runtime, install, documentation, and integration contracts rather than re-absorbing logic coverage that now lives in the Node tests.
+
+### Retained shell suite execution model
+
+The shell suite that remains after the helper migration should be parallel-safe by default.
+
+Retained shell-suite membership should be defined by directory boundary rather than by a separate manifest:
+
+- every durable `test-*.sh` directly under `tests/codex-runtime/` is part of the canonical shell suite
+- the canonical runner discovers those files automatically
+- the runner sorts them lexically
+- the runner launches all retained shell tests in parallel every time
+- the runner reports results in the same stable lexical order regardless of completion timing
+
+This keeps directory membership as the single source of truth and avoids manifest drift where tests appear to exist but are not actually executed.
+
+### Shell-test isolation rules
+
+Every retained shell test must obey a strict isolation contract:
+
+- tests may read from the real repo root
+- tests may write only inside test-local temp directories, temp install roots, temp homes, temp repos, or temp state directories created by that test
+- no retained shell test may mutate checked-in runtime bundles, checked-in docs, or other shared files under the repo root in a way that can affect another shell test
+
+Applied examples:
+
+- `SUPERPOWERS_STATE_DIR` must be test-local
+- `HOME` must be test-local when install or update behavior is under test
+- runtime-artifact corruption or deletion scenarios must run against an isolated temp install copy, not the working checkout
+
+The current `tests/codex-runtime/test-core-helper-runtime-launch.sh` is the first required refactor under this rule. It must stop renaming or corrupting `runtime/core-helpers/dist/superpowers-config.cjs` in the repo root and instead simulate missing or invalid bundles against a copied temp install root.
+
+### Canonical shell runner
+
+Add a small Node-based runner under `tests/codex-runtime/` as the canonical entrypoint for the retained shell suite.
+
+Runner contract:
+
+- discover every durable `test-*.sh` directly under `tests/codex-runtime/`
+- sort the discovered files lexically
+- launch every discovered shell test in parallel
+- capture stdout, stderr, exit code, and elapsed time per test
+- print the final report in lexical order instead of completion order
+- exit non-zero if any shell test fails
+
+The runner should buffer per-test output and print deterministic failure blocks rather than streaming interleaved child output live.
+
 ### Migration equivalence tests
 
 For the riskiest helpers, temporarily run old and new implementations against the same fixture inputs and assert on equivalence for representative success and failure cases.
@@ -344,6 +396,13 @@ Release verification must also confirm that the shipped bundles were generated f
 
 Release and test workflows, not wrapper-time manifest validation, are responsible for detecting stale or corrupted bundled artifacts before shipment.
 
+Release verification for the retained shell suite must also confirm that:
+
+- the canonical shell runner discovers the full durable `tests/codex-runtime/test-*.sh` set
+- repeated runs produce stable summary ordering
+- retained shell tests pass when launched concurrently
+- no retained shell test still depends on mutating shared repo-root runtime artifacts
+
 ## Windows Direction
 
 For the targeted core helpers, the long-term Windows direction is to stop requiring Git Bash.
@@ -387,15 +446,19 @@ Any parity evidence still worth preserving should live in deterministic tests, f
 - Direct `git pull` is no longer sufficient as the operational update contract for migrated runtime installs, so the staged helper becomes release-critical infrastructure.
 - Because shipped wrappers do not validate bundles against a checked-in fingerprint manifest, release and test workflows must catch stale or corrupted bundles before release.
 - Removing the legacy helper bodies in the coordinated cutover increases pressure on pre-release parity evidence, because git history and tests become the primary fallback reference.
+- If retained shell tests continue to mutate repo-root shared state, the new parallel runner will surface intermittent failures under load.
+- If directory hygiene drifts and ad hoc helper scripts are left in `tests/codex-runtime/` with a `test-*.sh` name, discovery will treat them as canonical suite members.
+- If the canonical shell runner streams child output live instead of buffering it per test, parallel failures will be much harder to diagnose.
 
 ## Success Criteria
 
 - Core helper behavior is primarily implemented in TypeScript/Node rather than Bash.
 - Most behavioral coverage runs as deterministic parallel Node tests.
 - The shell suite becomes a narrow wrapper-contract layer instead of the main behavioral test surface.
+- The retained durable shell suite runs through one canonical deterministic parallel runner and remains safe to execute concurrently.
 - The public helper CLI surface remains stable throughout the migration.
 - Windows execution for the migrated core helpers no longer depends on Git Bash.
 
 ## Open Questions
 
-None. CEO review resolved the runtime, packaging, compatibility, dependency, install/update, and rollout decisions needed for implementation planning.
+None. The current revision resolves the runtime, packaging, compatibility, dependency, install/update, rollout, and retained-shell-suite execution decisions needed for implementation planning.
