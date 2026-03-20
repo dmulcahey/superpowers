@@ -761,9 +761,7 @@ Expected: PASS
 Run: `node tests/codex-runtime/run-shell-tests.mjs`
 Expected: PASS with the durable shell tests executing in parallel and reporting in stable lexical order.
 
-- [ ] **Step 8: Commit the coordinated cutover release surface**
-
-  **Execution Note:** Active - Commit the coordinated cutover release surface
+- [x] **Step 8: Commit the coordinated cutover release surface**
 ```bash
 git add bin runtime/core-helpers tests/codex-runtime README.md .codex/INSTALL.md .copilot/INSTALL.md docs/README.codex.md docs/README.copilot.md docs/testing.md RELEASE-NOTES.md VERSION
 git commit -m "feat: ship bundled core helper runtime"

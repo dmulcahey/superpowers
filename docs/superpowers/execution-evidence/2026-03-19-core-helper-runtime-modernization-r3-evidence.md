@@ -79,3 +79,26 @@
 **Verification:**
 - `npm --prefix runtime/core-helpers run build:check && node --test tests/codex-runtime/runtime-build-contract.test.mjs && node --test tests/codex-runtime/config-core.test.mjs tests/codex-runtime/config-cli.test.mjs && node --test tests/codex-runtime/workflow-status-core.test.mjs tests/codex-runtime/workflow-status-cli.test.mjs && node --test tests/codex-runtime/plan-execution-core.test.mjs tests/codex-runtime/plan-execution-cli.test.mjs && node --test tests/codex-runtime/run-shell-tests.test.mjs && node tests/codex-runtime/run-shell-tests.mjs` -> PASS
 **Invalidation Reason:** N/A
+
+### Task 6 Step 8
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-20T15:04:35Z
+**Execution Source:** superpowers:subagent-driven-development
+**Claim:** Committed the coordinated bundled-runtime release surface, retained-shell runner migration, and execution artifacts in 22fd92c.
+**Files:**
+- docs/superpowers/execution-evidence/2026-03-19-core-helper-runtime-modernization-r2-evidence.md
+- docs/superpowers/execution-evidence/2026-03-19-core-helper-runtime-modernization-r3-evidence.md
+- docs/superpowers/plans/2026-03-19-core-helper-runtime-modernization.md
+- docs/superpowers/specs/2026-03-19-core-helper-runtime-modernization-design.md
+- docs/testing.md
+- RELEASE-NOTES.md
+- tests/codex-runtime/run-shell-tests.mjs
+- tests/codex-runtime/run-shell-tests.test.mjs
+- tests/codex-runtime/test-core-helper-runtime-launch.sh
+- tests/codex-runtime/test-runtime-instructions.sh
+- tests/codex-runtime/test-superpowers-update-check.sh
+- VERSION
+**Verification:**
+- `git show --stat --oneline --no-patch 22fd92c` -> PASS (commit 22fd92c present with the coordinated bundled-runtime release surface)
+**Invalidation Reason:** N/A
