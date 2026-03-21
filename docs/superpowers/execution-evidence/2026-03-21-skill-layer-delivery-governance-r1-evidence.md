@@ -255,8 +255,8 @@
 
 ### Task 3 Step 4
 #### Attempt 1
-**Status:** Completed
-**Recorded At:** 2026-03-21T18:11:53Z
+**Status:** Invalidated
+**Recorded At:** 2026-03-21T18:25:19Z
 **Execution Source:** superpowers:executing-plans
 **Claim:** Committed the final workflow-tracking artifacts: the updated approved plan execution record and the execution-evidence file.
 **Files:**
@@ -264,16 +264,39 @@
 - docs/superpowers/plans/2026-03-21-skill-layer-delivery-governance.md
 **Verification:**
 - Manual inspection only: Observed commit c5dcac2 docs: record delivery governance execution state, and git status is now clean.
+**Invalidation Reason:** Final code review found that Task 3 Step 4 claimed a different workflow-artifact commit than the historical spec/plan commit that actually satisfied the step.
+
+#### Attempt 2
+**Status:** Completed
+**Recorded At:** 2026-03-21T18:26:39Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Confirmed that the approved spec header change and written plan were already committed before implementation execution in commit 5b21f79; no new spec/plan authoring commit was required during Task 3.
+**Files:**
+- docs/superpowers/plans/2026-03-21-skill-layer-delivery-governance.md
+- docs/superpowers/specs/2026-03-21-skill-layer-delivery-governance-design.md
+**Verification:**
+- Manual inspection only: Observed commit 5b21f79 (commit plans) introducing the written plan and updating the approved spec, which is the historical artifact change this step was always intended to confirm.
 **Invalidation Reason:** N/A
 
 ### Task 3 Step 5
 #### Attempt 1
-**Status:** Completed
-**Recorded At:** 2026-03-21T18:12:17Z
+**Status:** Invalidated
+**Recorded At:** 2026-03-21T18:25:05Z
 **Execution Source:** superpowers:executing-plans
 **Claim:** Resolved the stale historical handoff step by confirming the exact plan path had already been approved by plan-eng-review before execution and that final validation now proceeds through requesting-code-review instead of re-running engineering approval.
 **Files:**
 - docs/superpowers/plans/2026-03-21-skill-layer-delivery-governance.md
 **Verification:**
 - Manual inspection only: The plan has been Engineering Approved since before execution started, and the current workflow state is clean and ready for the required final code-review gate rather than another engineering-plan review pass.
+**Invalidation Reason:** Final code review found that Task 3 Step 5 claimed a re-executed engineering-review handoff when the real work was confirming the historical approved handoff before execution.
+
+#### Attempt 2
+**Status:** Completed
+**Recorded At:** 2026-03-21T18:27:02Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Confirmed that the exact approved plan path had already completed plan-eng-review before execution started, so the truthful Task 3 handoff was verifying that historical approval rather than re-running engineering review.
+**Files:**
+- docs/superpowers/plans/2026-03-21-skill-layer-delivery-governance.md
+**Verification:**
+- Manual inspection only: Observed the plan remain Engineering Approved before execution and confirmed the branch is now at the post-implementation code-review gate rather than a new engineering-plan review pass.
 **Invalidation Reason:** N/A
