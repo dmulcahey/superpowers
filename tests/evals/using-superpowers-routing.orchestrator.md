@@ -23,13 +23,14 @@ Use the scenario-set identifier `using-superpowers-routing-r3` for evidence nami
 1. Start from a fresh isolated runner subagent.
 2. Use the real `using-superpowers` entry contract and installed skill set.
 3. Build a minimal synthetic temporary fixture workspace for each scenario.
-4. Pre-seed the synthetic session decision to `enabled` before the runner acts so the scenario exercises post-bypass routing instead of the first-turn opt-out prompt.
-5. Keep the runner read-only.
-6. Capture raw runner output and a structured outcome block for each scenario.
-7. Start a fresh isolated judge subagent after the runner finishes.
-8. Feed the judge the raw runner evidence plus the scenario file and the expected-safe-stage rubric.
-9. Record a per-scenario evidence bundle under `~/.superpowers/projects/<slug>/routing-evals/using-superpowers-routing-r3/...`.
-10. Pass only when every required scenario passes and no scenario is ambiguous.
+4. Pre-seed the runner's real session decision path to `enabled` before the runner acts so the scenario exercises post-bypass routing instead of the first-turn opt-out prompt.
+5. Derive that path from the same `using-superpowers` runtime shell the runner will use; do not guess or hardcode a `$PPID` from outside the runner session.
+6. Keep the runner read-only.
+7. Capture raw runner output and a structured outcome block for each scenario.
+8. Start a fresh isolated judge subagent after the runner finishes.
+9. Feed the judge the raw runner evidence plus the scenario file and the expected-safe-stage rubric.
+10. Record a per-scenario evidence bundle under `~/.superpowers/projects/<slug>/routing-evals/using-superpowers-routing-r3/...`.
+11. Pass only when every required scenario passes and no scenario is ambiguous.
 
 ## Evidence Bundle
 
@@ -38,6 +39,7 @@ The evidence bundle for a scenario must include:
 - scenario-set identifier
 - scenario identifier
 - scenario/rubric artifact revision or fingerprint
+- the runner-derived session decision path used for the pre-seeded `enabled` state
 - chosen runner model
 - chosen judge model
 - raw runner transcript/output

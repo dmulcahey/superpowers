@@ -847,13 +847,23 @@ if ! rg -n -F 'The routing gate intentionally starts after the first-turn bypass
   exit 1
 fi
 
-if ! rg -n -F 'Each fixture workspace pre-seeds the synthetic session decision to `enabled` so the scenario exercises post-bypass routing rather than the first-turn opt-out question.' tests/evals/using-superpowers-routing.scenarios.md >/dev/null; then
-  echo "The routing scenarios should explicitly pre-seed the synthetic session decision to enabled for post-bypass routing coverage."
+if ! rg -n -F "The routing gate intentionally starts after the first-turn bypass decision has already been resolved to \`enabled\` for the synthetic scenario session. Seed that state through the runner's real derived decision-file path for its own session identity; do not guess a \`\$PPID\` from outside the runner." tests/evals/README.md >/dev/null; then
+  echo "tests/evals/README.md should explain that the routing gate seeds enabled through the runner-derived decision path."
   exit 1
 fi
 
-if ! rg -n -F 'Pre-seed the synthetic session decision to `enabled` before the runner acts so the scenario exercises post-bypass routing instead of the first-turn opt-out prompt.' tests/evals/using-superpowers-routing.orchestrator.md >/dev/null; then
-  echo "The routing orchestrator should require pre-seeding the synthetic session decision to enabled."
+if ! rg -n -F "Each fixture workspace pre-seeds the synthetic session decision to \`enabled\` through the runner's own derived decision-file path so the scenario exercises post-bypass routing rather than the first-turn opt-out question." tests/evals/using-superpowers-routing.scenarios.md >/dev/null; then
+  echo "The routing scenarios should explicitly pre-seed enabled through the runner-derived decision path."
+  exit 1
+fi
+
+if ! rg -n -F 'Pre-seed the runner'"'"'s real session decision path to `enabled` before the runner acts so the scenario exercises post-bypass routing instead of the first-turn opt-out prompt.' tests/evals/using-superpowers-routing.orchestrator.md >/dev/null; then
+  echo "The routing orchestrator should require pre-seeding the runner-derived session decision path to enabled."
+  exit 1
+fi
+
+if ! rg -n -F 'Derive that path from the same `using-superpowers` runtime shell the runner will use; do not guess or hardcode a `$PPID` from outside the runner session.' tests/evals/using-superpowers-routing.orchestrator.md >/dev/null; then
+  echo "The routing orchestrator should forbid guessing PPIDs instead of deriving the runner's decision path."
   exit 1
 fi
 
