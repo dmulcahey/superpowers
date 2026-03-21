@@ -38,6 +38,7 @@ test('templates declare exactly one base or review preamble placeholder', () => 
 
 test('generated preamble bash block includes shared runtime-root, session, and contributor state', () => {
   for (const skill of listGeneratedSkills()) {
+    if (skill === 'using-superpowers') continue;
     const content = readUtf8(getSkillPath(skill));
     const bashBlock = extractBashBlockUnderHeading(content, 'Preamble (run first)');
     assert.ok(bashBlock, `${skill} should include a preamble bash block`);
@@ -45,6 +46,14 @@ test('generated preamble bash block includes shared runtime-root, session, and c
     assert.match(bashBlock, /_SESSIONS=/, `${skill} should track session count`);
     assert.match(bashBlock, /_CONTRIB=/, `${skill} should load contributor state`);
   }
+});
+
+test('using-superpowers gets a dedicated bootstrap preamble contract', () => {
+  const content = readUtf8(getSkillPath('using-superpowers'));
+  const bashBlock = extractBashBlockUnderHeading(content, 'Preamble (run first)');
+  assert.match(bashBlock, /session-flags\/using-superpowers/, 'using-superpowers should derive the decision-file path');
+  assert.doesNotMatch(bashBlock, /touch "\$_SP_STATE_DIR\/sessions\/\$PPID"/, 'using-superpowers should not write session markers before the bypass decision');
+  assert.doesNotMatch(bashBlock, /_CONTRIB=/, 'using-superpowers should not load contributor mode before the bypass decision');
 });
 
 test('generated preambles capture _BRANCH exactly once and keep helper BRANCH out of grounding', () => {

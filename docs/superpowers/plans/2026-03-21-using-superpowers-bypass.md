@@ -4,7 +4,7 @@
 
 **Workflow State:** Engineering Approved
 **Plan Revision:** 1
-**Execution Mode:** none
+**Execution Mode:** superpowers:executing-plans
 **Source Spec:** `docs/superpowers/specs/2026-03-21-using-superpowers-bypass-design.md`
 **Source Spec Revision:** 1
 **Last Reviewed By:** plan-eng-review
@@ -129,7 +129,7 @@ Task 3: behavior-level regression test + final verification
 - Modify: `tests/codex-runtime/skill-doc-contracts.test.mjs`
 - Test: `node --test tests/codex-runtime/gen-skill-docs.unit.test.mjs tests/codex-runtime/skill-doc-contracts.test.mjs`
 
-- [ ] **Step 1: Add red generator/unit assertions for the special bootstrap**
+- [x] **Step 1: Add red generator/unit assertions for the special bootstrap**
 ```js
 test('using-superpowers gets a dedicated bootstrap preamble', () => {
   const content = readUtf8(getSkillPath('using-superpowers'));
@@ -148,11 +148,11 @@ test('using-superpowers bypass helpers render the decision-state contract', () =
 });
 ```
 
-- [ ] **Step 2: Run the red tests**
+- [x] **Step 2: Run the red tests**
 Run: `node --test tests/codex-runtime/gen-skill-docs.unit.test.mjs tests/codex-runtime/skill-doc-contracts.test.mjs`
 Expected: FAIL because `using-superpowers` still uses the shared base preamble and does not yet expose the new bootstrap contract.
 
-- [ ] **Step 3: Implement the dedicated generator path and reusable bypass helpers**
+- [x] **Step 3: Implement the dedicated generator path and reusable bypass helpers**
 ```js
 export function buildUsingSuperpowersShellLines() {
   return [
@@ -170,14 +170,16 @@ export function buildUsingSuperpowersBypassGateSection() {
 }
 ```
 
-- [ ] **Step 4: Wire the template resolver and render path**
+- [x] **Step 4: Wire the template resolver and render path**
 Update `scripts/gen-skill-docs.mjs` so `using-superpowers` can resolve its preamble through a dedicated resolver instead of the shared `BASE_PREAMBLE`, while all other non-review skills keep the current base preamble.
 
-- [ ] **Step 5: Re-run the focused generator tests**
+- [x] **Step 5: Re-run the focused generator tests**
 Run: `node --test tests/codex-runtime/gen-skill-docs.unit.test.mjs tests/codex-runtime/skill-doc-contracts.test.mjs`
 Expected: PASS for the dedicated bootstrap contract without regressing the shared preamble checks for other skills.
 
 - [ ] **Step 6: Commit the generator/bootstrap foundation**
+
+  **Execution Note:** Active - Commit the generator/bootstrap foundation
 ```bash
 git add scripts/gen-skill-docs.mjs tests/codex-runtime/gen-skill-docs.unit.test.mjs tests/codex-runtime/skill-doc-contracts.test.mjs
 git commit -m "feat: add using-superpowers bootstrap preamble"

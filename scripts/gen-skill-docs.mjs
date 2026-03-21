@@ -46,6 +46,15 @@ export function buildBaseShellLines() {
   ];
 }
 
+export function buildUsingSuperpowersShellLines() {
+  return [
+    ...buildRootDetection(),
+    '_SP_STATE_DIR="${SUPERPOWERS_STATE_DIR:-$HOME/.superpowers}"',
+    '_SP_USING_SUPERPOWERS_DECISION_DIR="$_SP_STATE_DIR/session-flags/using-superpowers"',
+    '_SP_USING_SUPERPOWERS_DECISION_PATH="$_SP_USING_SUPERPOWERS_DECISION_DIR/$PPID"',
+  ];
+}
+
 export function buildReviewShellLines() {
   return [
     ...buildBaseShellLines(),
@@ -71,6 +80,18 @@ export function buildQuestionFormat() {
 If \`_SESSIONS\` is 3 or more: the user is juggling multiple Superpowers sessions and context-switching heavily. **ELI16 mode** — they may not remember what this conversation is about. Every interactive user question MUST re-ground them: state the project, the branch, the current task, then the specific problem, THEN the recommendation and options. Be extra clear and self-contained — assume they haven't looked at this window in 20 minutes.
 
 Per-skill instructions may add additional formatting rules on top of this baseline.`;
+}
+
+export function buildUsingSuperpowersBypassGateSection() {
+  return `## Bypass Gate
+
+Before any normal Superpowers behavior:
+
+- if the session decision is \`enabled\`, continue into the normal stack
+- if the session decision is \`bypassed\` and the user did not explicitly request Superpowers, stop and bypass the rest of this skill
+- if the user explicitly requests Superpowers, rewrite the session decision to \`enabled\` and continue on the same turn
+- if the session decision is missing or malformed, ask the opt-out question and persist either \`enabled\` or \`bypassed\`
+`;
 }
 
 export function buildContributorMode() {
@@ -143,9 +164,31 @@ export function generatePreamble({ review }) {
   return parts.join('\n');
 }
 
+export function generateUsingSuperpowersPreamble() {
+  const parts = [
+    '## Preamble (run first)',
+    '',
+    '```bash',
+    ...buildUsingSuperpowersShellLines(),
+    '```',
+    '',
+    buildUpgradeNote(),
+    '',
+    buildQuestionFormat(),
+    '',
+    buildContributorMode(),
+  ];
+  return parts.join('\n');
+}
+
+function isUsingSuperpowersTemplate(templatePath) {
+  return path.basename(path.dirname(templatePath)) === 'using-superpowers';
+}
+
 export const RESOLVERS = {
-  BASE_PREAMBLE: () => generatePreamble({ review: false }),
+  BASE_PREAMBLE: (templatePath) => (isUsingSuperpowersTemplate(templatePath) ? generateUsingSuperpowersPreamble() : generatePreamble({ review: false })),
   REVIEW_PREAMBLE: () => generatePreamble({ review: true }),
+  USING_SUPERPOWERS_BYPASS_GATE: () => buildUsingSuperpowersBypassGateSection(),
 };
 
 export function insertGeneratedHeader(content) {
@@ -173,7 +216,7 @@ export function renderTemplateContent(content, templatePath, resolvers = RESOLVE
     if (!resolver) {
       throw new Error(`Unknown placeholder {{${name}}} in ${templatePath}`);
     }
-    return resolver();
+    return resolver(templatePath);
   });
 
   if (/\{\{[A-Z_]+\}\}/.test(rendered)) {
