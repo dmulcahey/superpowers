@@ -367,7 +367,7 @@ required_patterns=(
   "docs/README.copilot.md:brainstorming -> plan-ceo-review -> writing-plans -> plan-eng-review -> implementation"
   'docs/README.copilot.md:Workspace preparation is the user'"'"'s responsibility; invoke `using-git-worktrees` manually when you want isolated workspace management.'
   "skills/brainstorming/SKILL.md:## Preamble (run first)"
-  'skills/brainstorming/SKILL.md:7. **Automatic spec review handoff** — invoke `superpowers:plan-ceo-review` after writing the spec'
+  'skills/brainstorming/SKILL.md:8. **Automatic spec review handoff** — invoke `superpowers:plan-ceo-review` after writing the spec'
   'skills/brainstorming/SKILL.md:**Workflow State:** Draft'
   "skills/brainstorming/SKILL.md:**The terminal state is invoking plan-ceo-review.**"
   "skills/writing-plans/SKILL.md:## Preamble (run first)"
@@ -790,6 +790,30 @@ fi
 for reviewer_file in agents/code-reviewer.instructions.md agents/code-reviewer.md .codex/agents/code-reviewer.toml; do
   if ! rg -n -F 'Critical (must fix), Important (should fix), or Minor (nice to have)' "$reviewer_file" >/dev/null; then
     echo "Reviewer instruction file $reviewer_file should use the Critical/Important/Minor severity taxonomy."
+    exit 1
+  fi
+  if ! rg -n -F '1-2 targeted checks' "$reviewer_file" >/dev/null; then
+    echo "Reviewer instruction file $reviewer_file should bound Search-Before-Building checks."
+    exit 1
+  fi
+  if ! rg -n -F 'official documentation' "$reviewer_file" >/dev/null; then
+    echo "Reviewer instruction file $reviewer_file should mention official documentation."
+    exit 1
+  fi
+  if ! rg -n -F 'issue trackers or maintainer guidance' "$reviewer_file" >/dev/null; then
+    echo "Reviewer instruction file $reviewer_file should mention issue trackers or maintainer guidance."
+    exit 1
+  fi
+  if ! rg -n -F 'primary-source technical references' "$reviewer_file" >/dev/null; then
+    echo "Reviewer instruction file $reviewer_file should prioritize primary-source technical references."
+    exit 1
+  fi
+  if ! rg -n -F 'anchored in the actual diff' "$reviewer_file" >/dev/null; then
+    echo "Reviewer instruction file $reviewer_file should keep findings grounded in the diff."
+    exit 1
+  fi
+  if ! rg -n -F 'file:line' "$reviewer_file" >/dev/null; then
+    echo "Reviewer instruction file $reviewer_file should require file:line evidence."
     exit 1
   fi
 done

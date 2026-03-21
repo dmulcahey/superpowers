@@ -42,6 +42,10 @@ require_pattern review/checklist.md "SQL & Data Safety"
 require_pattern review/checklist.md "Enum & Value Completeness"
 require_pattern review/checklist.md "Documentation Staleness"
 require_pattern review/checklist.md "TODO Cross-Reference"
+require_pattern review/checklist.md "Built-in Before Bespoke / Known Pattern Footguns"
+require_pattern review/checklist.md "custom auth or session handling that bypasses framework protections"
+require_pattern review/checklist.md "custom retry, debounce, cache, queue, or state logic where the platform already offers a stable primitive"
+require_pattern review/checklist.md "well-known failure modes in the current ecosystem"
 
 for file in agents/code-reviewer.instructions.md agents/code-reviewer.md .codex/agents/code-reviewer.toml; do
   require_pattern "$file" "review/checklist.md"
@@ -53,6 +57,12 @@ done
 require_pattern skills/requesting-code-review/SKILL.md "review checklist"
 require_pattern skills/requesting-code-review/SKILL.md "{BASE_BRANCH}"
 require_pattern skills/requesting-code-review/code-reviewer.md "{BASE_BRANCH}"
+require_pattern skills/requesting-code-review/code-reviewer.md "built-in-before-bespoke"
+require_pattern skills/requesting-code-review/code-reviewer.md "known pattern footguns"
+require_pattern skills/requesting-code-review/code-reviewer.md "official documentation"
+require_pattern skills/requesting-code-review/code-reviewer.md "issue trackers or maintainer guidance"
+require_pattern skills/requesting-code-review/code-reviewer.md "primary-source technical references"
+require_pattern skills/requesting-code-review/code-reviewer.md "file:line"
 require_pattern skills/subagent-driven-development/code-quality-reviewer-prompt.md "BASE_BRANCH"
 
 require_pattern skills/plan-eng-review/SKILL.md '$_SP_STATE_DIR/projects'
