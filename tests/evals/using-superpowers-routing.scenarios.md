@@ -56,6 +56,7 @@ Each scenario evidence bundle must record:
 - the scenario-set identifier
 - the scenario identifier
 - the scenario/rubric artifact revision or fingerprint
+- the runner-derived session decision path used for the pre-seeded `enabled` state
 - the chosen runner and judge models
 - the raw runner transcript/output
 - the raw judge transcript/output or structured judge rationale

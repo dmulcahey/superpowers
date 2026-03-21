@@ -857,6 +857,11 @@ if ! rg -n -F "Each fixture workspace pre-seeds the synthetic session decision t
   exit 1
 fi
 
+if ! rg -n -F -- '- the runner-derived session decision path used for the pre-seeded `enabled` state' tests/evals/using-superpowers-routing.scenarios.md >/dev/null; then
+  echo "The routing scenarios should require the runner-derived decision path in each evidence bundle."
+  exit 1
+fi
+
 if ! rg -n -F 'Pre-seed the runner'"'"'s real session decision path to `enabled` before the runner acts so the scenario exercises post-bypass routing instead of the first-turn opt-out prompt.' tests/evals/using-superpowers-routing.orchestrator.md >/dev/null; then
   echo "The routing orchestrator should require pre-seeding the runner-derived session decision path to enabled."
   exit 1
