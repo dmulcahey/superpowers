@@ -9,9 +9,11 @@ Scenario set identifier: `using-superpowers-routing-r3`
 
 - Each scenario starts from a fresh synthetic temporary fixture workspace.
 - Each fixture workspace is a real initialized git repo with explicit branch, remote, and artifact-state files.
+- Each fixture workspace pre-seeds the synthetic session decision to `enabled` so the scenario exercises post-bypass routing rather than the first-turn opt-out question.
 - The runner is read-only.
 - The judge reads raw runner evidence plus this file and the expected-safe-stage rubric.
 - Fail closed on ambiguous, mixed, malformed, or missing evidence.
+- The bypass prompt itself is out of scope for this gate and is covered by `tests/codex-runtime/test-using-superpowers-bypass.sh`.
 
 ## Fixed Minimum Matrix
 

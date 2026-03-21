@@ -7,6 +7,8 @@ It replaces the old JS-only routing eval surface.
 
 Dispatch a fresh runner subagent against the repo-versioned scenario matrix, capture the raw runner evidence, dispatch a fresh judge subagent against that evidence, and persist a reviewable evidence bundle under `~/.superpowers/projects/<slug>/...`.
 
+This gate validates post-bypass workflow-stage routing. It does not treat the first-turn opt-out question as the scenario outcome.
+
 Use the scenario-set identifier `using-superpowers-routing-r3` for evidence naming and retention.
 
 ## Required Inputs
@@ -21,12 +23,13 @@ Use the scenario-set identifier `using-superpowers-routing-r3` for evidence nami
 1. Start from a fresh isolated runner subagent.
 2. Use the real `using-superpowers` entry contract and installed skill set.
 3. Build a minimal synthetic temporary fixture workspace for each scenario.
-4. Keep the runner read-only.
-5. Capture raw runner output and a structured outcome block for each scenario.
-6. Start a fresh isolated judge subagent after the runner finishes.
-7. Feed the judge the raw runner evidence plus the scenario file and the expected-safe-stage rubric.
-8. Record a per-scenario evidence bundle under `~/.superpowers/projects/<slug>/routing-evals/using-superpowers-routing-r3/...`.
-9. Pass only when every required scenario passes and no scenario is ambiguous.
+4. Pre-seed the synthetic session decision to `enabled` before the runner acts so the scenario exercises post-bypass routing instead of the first-turn opt-out prompt.
+5. Keep the runner read-only.
+6. Capture raw runner output and a structured outcome block for each scenario.
+7. Start a fresh isolated judge subagent after the runner finishes.
+8. Feed the judge the raw runner evidence plus the scenario file and the expected-safe-stage rubric.
+9. Record a per-scenario evidence bundle under `~/.superpowers/projects/<slug>/routing-evals/using-superpowers-routing-r3/...`.
+10. Pass only when every required scenario passes and no scenario is ambiguous.
 
 ## Evidence Bundle
 
@@ -56,3 +59,4 @@ The evidence bundle is non-authoritative local review/debug output. It must not 
 
 Do not treat this as a generic prompt-eval or a reusable repo-wide LLM eval framework.
 Do not fall back to the retired `using-superpowers-routing.eval.mjs` file.
+Do not count the pre-routing bypass question as the routed outcome for this gate.

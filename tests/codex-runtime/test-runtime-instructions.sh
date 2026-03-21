@@ -797,6 +797,11 @@ if ! rg -n -F 'bash tests/codex-runtime/test-superpowers-slug.sh' docs/testing.m
   exit 1
 fi
 
+if ! rg -n -F 'bash tests/codex-runtime/test-using-superpowers-bypass.sh' docs/testing.md >/dev/null; then
+  echo "docs/testing.md should include the using-superpowers bypass regression in the recommended validation order."
+  exit 1
+fi
+
 if ! rg -n -F 'node --test tests/brainstorm-server/server.test.js tests/brainstorm-server/ws-protocol.test.js' docs/testing.md >/dev/null; then
   echo "docs/testing.md should document the full brainstorm-server node test command, not only npm test."
   exit 1
@@ -834,6 +839,21 @@ fi
 
 if ! rg -n -F 'the routing gate does not use `tests/evals/helpers/openai-judge.mjs`' tests/evals/README.md >/dev/null; then
   echo "tests/evals/README.md should state that the routing gate is not driven by the Node OpenAI judge helper."
+  exit 1
+fi
+
+if ! rg -n -F 'The routing gate intentionally starts after the first-turn bypass decision has already been resolved to `enabled` for the synthetic scenario session.' tests/evals/README.md >/dev/null; then
+  echo "tests/evals/README.md should explain that the routing gate validates post-bypass routing rather than the first-turn opt-out question."
+  exit 1
+fi
+
+if ! rg -n -F 'Each fixture workspace pre-seeds the synthetic session decision to `enabled` so the scenario exercises post-bypass routing rather than the first-turn opt-out question.' tests/evals/using-superpowers-routing.scenarios.md >/dev/null; then
+  echo "The routing scenarios should explicitly pre-seed the synthetic session decision to enabled for post-bypass routing coverage."
+  exit 1
+fi
+
+if ! rg -n -F 'Pre-seed the synthetic session decision to `enabled` before the runner acts so the scenario exercises post-bypass routing instead of the first-turn opt-out prompt.' tests/evals/using-superpowers-routing.orchestrator.md >/dev/null; then
+  echo "The routing orchestrator should require pre-seeding the synthetic session decision to enabled."
   exit 1
 fi
 

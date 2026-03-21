@@ -28,6 +28,7 @@ Your rationale should reference:
 
 - the scenario identifier
 - the relevant fixture state
+- whether the fixture pre-seeded the synthetic session decision to `enabled`
 - the runner's chosen stage or skill
 - the forbidden routes that were or were not rejected
 - any evidence gaps that forced a fail
