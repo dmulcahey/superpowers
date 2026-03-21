@@ -2,12 +2,12 @@
 
 > **For Codex and GitHub Copilot workers:** REQUIRED: Use `superpowers:subagent-driven-development` when isolated-agent workflows are available in the current platform/session; otherwise use `superpowers:executing-plans`. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Workflow State:** Draft
+**Workflow State:** Engineering Approved
 **Plan Revision:** 1
-**Execution Mode:** none
+**Execution Mode:** superpowers:executing-plans
 **Source Spec:** `docs/superpowers/specs/2026-03-21-bootstrap-and-branch-safety-hardening-design.md`
 **Source Spec Revision:** 1
-**Last Reviewed By:** writing-plans
+**Last Reviewed By:** plan-eng-review
 
 **Goal:** Make first-turn Superpowers entry fail closed through a runtime-owned session-entry contract, add a runtime-owned protected-branch repo-write gate, and ship the helper, workflow, docs, and regression coverage needed to make those guarantees real.
 
@@ -71,6 +71,7 @@
 - Modify: `tests/codex-runtime/test-workflow-enhancements.sh`
 - Modify: `tests/codex-runtime/test-workflow-sequencing.sh`
 - Modify: `tests/codex-runtime/skill-doc-contracts.test.mjs`
+- Modify: `tests/evals/using-superpowers-routing.scenarios.md`
   Update deterministic regression suites for the new helper contracts and workflow-stage call sites.
 - Modify: `README.md`
 - Modify: `docs/README.codex.md`
@@ -123,6 +124,7 @@ This ordering is mandatory. Do not start workflow-stage adoption or public-contr
   - generated skill-doc contract assertions
   - workflow-sequencing and workflow-enhancement regressions
   - first-turn session-entry gate regression
+  - post-bypass `using-superpowers` routing eval through the checked-in orchestrator/runner/judge flow
 - Final validation:
   - full targeted matrix from Task 6
   - `superpowers:verification-before-completion` before handoff
@@ -277,7 +279,7 @@ normalize_identifier_token() { ... }
 Update `bin/superpowers-workflow-status` and `bin/superpowers-plan-execution` to source the shared Bash library and to keep their existing JSON/error contracts unchanged.
 
 - [ ] **Step 5: Extend the shared PowerShell helper surface**
-Add PowerShell equivalents for the new normalization primitives to `bin/superpowers-pwsh-common.ps1` so the new wrappers do not grow private implementations.
+Add PowerShell equivalents for the new normalization primitives to `bin/superpowers-pwsh-common.ps1` so the new wrappers do not grow private implementations. This task owns all shared PowerShell foundation changes needed by later helper wrappers.
 
 - [ ] **Step 6: Re-run the helper parity suites**
 Run: `bash tests/codex-runtime/test-superpowers-workflow-status.sh && bash tests/codex-runtime/test-superpowers-plan-execution.sh && bash tests/codex-runtime/test-superpowers-slug.sh`
@@ -294,7 +296,6 @@ git commit -m "refactor: share runtime helper primitives"
 **Files:**
 - Create: `bin/superpowers-session-entry`
 - Create: `bin/superpowers-session-entry.ps1`
-- Modify: `bin/superpowers-pwsh-common.ps1`
 - Create: `tests/codex-runtime/test-superpowers-session-entry.sh`
 - Modify: `tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh`
 - Test: `bash tests/codex-runtime/test-superpowers-session-entry.sh`
@@ -305,6 +306,9 @@ git commit -m "refactor: share runtime helper primitives"
 expect_json_field outcome needs_user_choice
 expect_json_field decision_source missing
 expect_json_field failure_class MalformedDecisionState
+populate_decoy_state_tree 100
+expect_json_field decision_path "$EXPECTED_DECISION_PATH"
+require_absent_pattern bin/superpowers-session-entry 'find .*session-flags'
 ```
 
 - [ ] **Step 2: Run the red session-entry helper test**
@@ -319,15 +323,15 @@ superpowers-session-entry record --decision enabled|bypassed [--session-key <id>
 Return JSON with `outcome`, `decision_source`, `session_key`, `decision_path`, `policy_source`, `persisted`, `failure_class`, and `reason`.
 
 - [ ] **Step 4: Implement the PowerShell wrapper**
-Use the shared PowerShell helper surface and keep CLI semantics aligned with the Bash helper.
+Use the shared PowerShell helper surface from Task 1 and keep CLI semantics aligned with the Bash helper. Do not add new shared-wrapper primitives in this task unless Task 1 is explicitly reopened.
 
 - [ ] **Step 5: Re-run the helper tests**
 Run: `bash tests/codex-runtime/test-superpowers-session-entry.sh && bash tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh`
-Expected: PASS for missing, enabled, bypassed, malformed, explicit re-entry, and re-entry write-failure cases.
+Expected: PASS for missing, enabled, bypassed, malformed, explicit re-entry, re-entry write-failure, and the normal-path hot-path guard that proves the helper still uses the derived decision file even when unrelated session state exists.
 
 - [ ] **Step 6: Commit the session-entry helper**
 ```bash
-git add bin/superpowers-session-entry bin/superpowers-session-entry.ps1 bin/superpowers-pwsh-common.ps1 tests/codex-runtime/test-superpowers-session-entry.sh tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh
+git add bin/superpowers-session-entry bin/superpowers-session-entry.ps1 tests/codex-runtime/test-superpowers-session-entry.sh tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh
 git commit -m "feat: add session-entry runtime helper"
 ```
 
@@ -336,7 +340,6 @@ git commit -m "feat: add session-entry runtime helper"
 **Files:**
 - Create: `bin/superpowers-repo-safety`
 - Create: `bin/superpowers-repo-safety.ps1`
-- Modify: `bin/superpowers-pwsh-common.ps1`
 - Create: `tests/codex-runtime/test-superpowers-repo-safety.sh`
 - Test: `bash tests/codex-runtime/test-superpowers-repo-safety.sh`
 
@@ -346,6 +349,9 @@ expect_json_field outcome blocked
 expect_json_field failure_class ProtectedBranchDetected
 expect_json_field failure_class ApprovalFingerprintMismatch
 expect_json_field protected_by default
+populate_decoy_approval_tree 100
+expect_json_field approval_path "$EXPECTED_APPROVAL_PATH"
+require_absent_pattern bin/superpowers-repo-safety 'find .*repo-safety'
 ```
 
 - [ ] **Step 2: Run the red repo-safety helper test**
@@ -361,15 +367,15 @@ superpowers-repo-safety approve --stage <skill-id> --task-id <id> --reason <text
 Use deterministic approval paths, exact protected-branch defaults, bounded input validation, and approval fingerprints.
 
 - [ ] **Step 4: Implement the PowerShell wrapper**
-Keep output fields and failure classes aligned with the Bash helper.
+Keep output fields and failure classes aligned with the Bash helper and reuse the shared wrapper primitives established in Task 1.
 
 - [ ] **Step 5: Re-run the repo-safety tests**
 Run: `bash tests/codex-runtime/test-superpowers-repo-safety.sh`
-Expected: PASS for default-protected branches, feature branches, matching approvals, mismatched task/path/target/fingerprint cases, and read-only calls.
+Expected: PASS for default-protected branches, feature branches, matching approvals, mismatched task/path/target/fingerprint cases, read-only calls, and the normal-path hot-path guard that proves the helper reads the deterministic approval path rather than scanning decoy local state.
 
 - [ ] **Step 6: Commit the repo-safety helper**
 ```bash
-git add bin/superpowers-repo-safety bin/superpowers-repo-safety.ps1 bin/superpowers-pwsh-common.ps1 tests/codex-runtime/test-superpowers-repo-safety.sh
+git add bin/superpowers-repo-safety bin/superpowers-repo-safety.ps1 tests/codex-runtime/test-superpowers-repo-safety.sh
 git commit -m "feat: add protected-branch repo safety helper"
 ```
 
@@ -386,6 +392,7 @@ git commit -m "feat: add protected-branch repo safety helper"
 - Modify: `tests/codex-runtime/test-using-superpowers-bypass.sh`
 - Modify: `tests/codex-runtime/test-runtime-instructions.sh`
 - Modify: `tests/codex-runtime/skill-doc-contracts.test.mjs`
+- Modify: `tests/evals/using-superpowers-routing.scenarios.md`
 - Create: `tests/codex-runtime/test-superpowers-session-entry-gate.sh`
 - Test: `node scripts/gen-skill-docs.mjs`
 - Test: `node scripts/gen-skill-docs.mjs --check`
@@ -393,6 +400,7 @@ git commit -m "feat: add protected-branch repo safety helper"
 - Test: `bash tests/codex-runtime/test-using-superpowers-bypass.sh`
 - Test: `bash tests/codex-runtime/test-superpowers-session-entry-gate.sh`
 - Test: `bash tests/codex-runtime/test-runtime-instructions.sh`
+- Test: agent-executed routing evaluation using the checked-in orchestration entrypoint plus the runner/judge instruction set
 
 - [ ] **Step 1: Add red contract assertions for runtime-owned session entry**
 ```bash
@@ -410,16 +418,27 @@ Make the generated `using-superpowers` contract explicitly reference `superpower
 - [ ] **Step 4: Add the first-turn supported-entry gate**
 Create `tests/codex-runtime/test-superpowers-session-entry-gate.sh` to fail if a fresh entry path reaches normal behavior before the bypass prompt or if malformed state bypasses the prompt.
 
-- [ ] **Step 5: Refresh the public docs**
-Update `README.md`, `docs/README.codex.md`, `docs/README.copilot.md`, and `docs/testing.md` so they distinguish workflow-state guarantees from bootstrap-entry guarantees.
+- [ ] **Step 5: Extend the post-bypass routing eval with one bootstrap-adjacent scenario**
+Update `tests/evals/using-superpowers-routing.scenarios.md` with one scenario where the session is already pre-seeded to `enabled`, the prompt explicitly mentions using Superpowers, and the expected route still follows artifact state instead of resurfacing bootstrap logic.
 
-- [ ] **Step 6: Re-run the session-entry verification set**
+- [ ] **Step 6: Refresh the public docs**
+Update `README.md`, `docs/README.codex.md`, `docs/README.copilot.md`, and `docs/testing.md` so they distinguish workflow-state guarantees from bootstrap-entry guarantees and explicitly call out the deterministic first-turn gate plus the post-bypass routing eval as complementary coverage.
+
+- [ ] **Step 7: Re-run the session-entry verification set**
 Run: `node scripts/gen-skill-docs.mjs && node scripts/gen-skill-docs.mjs --check && node --test tests/codex-runtime/skill-doc-contracts.test.mjs && bash tests/codex-runtime/test-using-superpowers-bypass.sh && bash tests/codex-runtime/test-superpowers-session-entry-gate.sh && bash tests/codex-runtime/test-runtime-instructions.sh`
 Expected: PASS with the new runtime-owned bootstrap wording and first-turn gate.
 
-- [ ] **Step 7: Commit the session-entry adoption slice**
+- [ ] **Step 8: Run the required focused routing eval for the `using-superpowers` surface**
+Run the checked-in orchestration flow defined in `tests/evals/using-superpowers-routing.orchestrator.md`.
+Expected behavior of that gate:
+- execute the full repo-versioned scenario matrix from `tests/evals/using-superpowers-routing.scenarios.md`
+- include the new bootstrap-adjacent post-bypass scenario
+- preserve the existing positive-control and fail-closed routing expectations
+- pass only if the judge finds that the runtime-owned bootstrap wording changes do not perturb post-bypass routing outcomes
+
+- [ ] **Step 9: Commit the session-entry adoption slice**
 ```bash
-git add scripts/gen-skill-docs.mjs skills/using-superpowers/SKILL.md.tmpl skills/using-superpowers/SKILL.md README.md docs/README.codex.md docs/README.copilot.md docs/testing.md tests/codex-runtime/test-using-superpowers-bypass.sh tests/codex-runtime/test-superpowers-session-entry-gate.sh tests/codex-runtime/test-runtime-instructions.sh tests/codex-runtime/skill-doc-contracts.test.mjs
+git add scripts/gen-skill-docs.mjs skills/using-superpowers/SKILL.md.tmpl skills/using-superpowers/SKILL.md README.md docs/README.codex.md docs/README.copilot.md docs/testing.md tests/codex-runtime/test-using-superpowers-bypass.sh tests/codex-runtime/test-superpowers-session-entry-gate.sh tests/codex-runtime/test-runtime-instructions.sh tests/codex-runtime/skill-doc-contracts.test.mjs tests/evals/using-superpowers-routing.scenarios.md
 git commit -m "feat: harden runtime-owned session entry"
 ```
 
@@ -446,16 +465,30 @@ git commit -m "feat: harden runtime-owned session entry"
 - [ ] **Step 1: Add red workflow-stage assertions for repo-safety preflight**
 ```bash
 require_pattern skills/brainstorming/SKILL.md 'superpowers-repo-safety check --intent write'
+require_pattern skills/brainstorming/SKILL.md 'superpowers-repo-safety approve --stage'
 require_pattern skills/plan-ceo-review/SKILL.md 'superpowers-repo-safety check --intent write'
 require_pattern skills/finishing-a-development-branch/SKILL.md 'superpowers-repo-safety check --intent write'
 ```
 
 - [ ] **Step 2: Run the red workflow-stage tests**
 Run: `bash tests/codex-runtime/test-workflow-enhancements.sh && bash tests/codex-runtime/test-workflow-sequencing.sh`
-Expected: FAIL because repo-writing workflow stages do not yet document or require the shared preflight.
+Expected: FAIL because repo-writing workflow stages do not yet document or require the shared preflight and rescue flow.
 
 - [ ] **Step 3: Update repo-writing workflow templates**
-Add `superpowers-repo-safety check --intent write ...` at the correct pre-write boundary for spec writes, approval-header writes, plan writes, execution task slices, release-doc writes, and branch-finishing commands.
+Add one shared blocked-write rescue pattern at the correct pre-write boundary for spec writes, approval-header writes, plan writes, execution task slices, release-doc writes, and branch-finishing commands:
+
+```text
+superpowers-repo-safety check --intent write ...
+  -> if allowed, continue
+  -> if blocked, explain branch/stage/failure_class and route to either:
+     - feature branch / superpowers:using-git-worktrees
+     - explicit user approval for the current task scope
+  -> if the user explicitly approves the current task scope:
+     superpowers-repo-safety approve --stage ... --task-id ... --reason ... [--path ...] [--write-target ...]
+     superpowers-repo-safety check --intent write ...   # must pass before continuing
+```
+
+Keep this flow structurally identical across touched repo-writing skills so the protected-branch escape hatch is narrow, auditable, and not re-invented per stage.
 
 - [ ] **Step 4: Regenerate the skill docs**
 Run: `node scripts/gen-skill-docs.mjs`
@@ -463,7 +496,7 @@ Expected: generated `SKILL.md` files match the updated templates.
 
 - [ ] **Step 5: Re-run workflow-stage regressions**
 Run: `node scripts/gen-skill-docs.mjs --check && bash tests/codex-runtime/test-workflow-enhancements.sh && bash tests/codex-runtime/test-workflow-sequencing.sh`
-Expected: PASS with the repo-safety gate present at every repo-writing stage and still absent from read-only flows.
+Expected: PASS with the repo-safety gate present at every repo-writing stage, the explicit approval rescue flow documented consistently, and the gate still absent from read-only flows.
 
 - [ ] **Step 6: Commit the workflow adoption slice**
 ```bash
@@ -474,10 +507,6 @@ git commit -m "feat: gate repo-writing workflow stages on protected branches"
 ## Task 6: Final Verification, Docs, And Handoff
 
 **Files:**
-- Modify: `docs/testing.md`
-- Modify: `README.md`
-- Modify: `docs/README.codex.md`
-- Modify: `docs/README.copilot.md`
 - Test: `node scripts/gen-agent-docs.mjs --check`
 - Test: `node scripts/gen-skill-docs.mjs --check`
 - Test: `node --test tests/codex-runtime/*.test.mjs`
@@ -492,12 +521,15 @@ git commit -m "feat: gate repo-writing workflow stages on protected branches"
 - Test: `bash tests/codex-runtime/test-superpowers-workflow-status.sh`
 - Test: `bash tests/codex-runtime/test-superpowers-slug.sh`
 - Test: `bash tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh`
+- Test: agent-executed routing evaluation using the checked-in orchestration entrypoint plus the runner/judge instruction set
 
 - [ ] **Step 1: Refresh the docs/testing guidance**
-Ensure `docs/testing.md` and the workflow docs explicitly distinguish:
+Verify that the docs already updated in Task 4 still explicitly distinguish:
   - helper-backed workflow-state guarantees
   - bootstrap-entry guarantees
   - protected-branch repo-write guarantees
+
+If this verification reveals a doc regression, reopen the owning task instead of silently broadening Task 6 into another doc-edit slice.
 
 - [ ] **Step 2: Run the full targeted verification matrix**
 Run:
@@ -519,12 +551,14 @@ bash tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh
 ```
 Expected: PASS.
 
+Run the checked-in orchestration flow defined in `tests/evals/using-superpowers-routing.orchestrator.md`.
+Expected: PASS for the full repo-versioned routing matrix, including the bootstrap-adjacent post-bypass scenario added in Task 4.
+
 - [ ] **Step 3: Run `superpowers:verification-before-completion`**
 Confirm the helper binaries, generated docs, and regression surfaces all pass before handoff.
 
 - [ ] **Step 4: Commit the final verification/doc updates**
 ```bash
-git add docs/testing.md README.md docs/README.codex.md docs/README.copilot.md
 git commit -m "test: finalize bootstrap and branch-safety hardening coverage"
 ```
 
