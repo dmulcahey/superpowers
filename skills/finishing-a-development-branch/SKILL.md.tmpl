@@ -101,7 +101,9 @@ When the change type or test-plan artifact clearly warrants browser QA, require 
 
 For workflow-routed work, require the required `document-release` pass before presenting completion options.
 
-If the repo has release-facing docs or metadata such as `CHANGELOG.md`, `RELEASE-NOTES.md`, `VERSION`, `TODOS.md`, `README.md`, or platform workflow docs, do not treat documentation as optional cleanup. Route through `superpowers:document-release` first unless a fresh pass already happened in the current workflow.
+For workflow-routed work, if the repo has release-facing docs or metadata such as `CHANGELOG.md`, `RELEASE-NOTES.md`, `VERSION`, `TODOS.md`, `README.md`, or platform workflow docs, do not treat documentation as optional cleanup. Route through `superpowers:document-release` first unless a fresh pass already happened in the current workflow.
+
+For ad-hoc or non-workflow-routed work, keep `document-release` available as an optional cleanup pass when the diff clearly changes release-facing docs or handoff material, but do not turn it into a universal pre-completion gate.
 
 Before moving on, perform a short Gate F-style confirmation:
 

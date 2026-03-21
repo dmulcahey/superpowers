@@ -144,7 +144,8 @@ flowchart TD
         FINAL_REVIEW -->|Dirty execution state, stale evidence,<br/>missed reopen, or missing semantic proof| FAIL_CLOSED["Fail closed and return to execution<br/>or back to plan-eng-review"]
         FINAL_REVIEW -->|Review resolved| FINISH_BRANCH["superpowers:finishing-a-development-branch<br/>must read status --plan and evidence_path"]
         FINISH_BRANCH -->|Execution dirty or malformed| FAIL_CLOSED
-        FINISH_BRANCH --> QA_OR_COMPLETE["Optional qa-only for browser-facing work,<br/>then PR / merge / keep-branch completion flow"]
+        FINISH_BRANCH --> DOC_RELEASE["workflow-routed work: required document-release<br/>ad-hoc work: optional release/doc cleanup"]
+        DOC_RELEASE --> QA_OR_COMPLETE["conditional qa-only for browser-facing work,<br/>then PR / merge / keep-branch completion flow"]
     end
 ```
 
@@ -306,7 +307,7 @@ Only the user can initiate accelerated review, and section approval plus final a
 
 4. **plan-eng-review** - Activates after the plan is written. Reviews the full written plan before implementation starts.
 
-5. **implementation** - `subagent-driven-development` or `executing-plans` start from an engineering-approved current plan, run workspace-readiness checks, and execute the plan. The completion flow then runs `requesting-code-review`, may offer `qa-only` before landing, and may offer `document-release` before final branch cleanup or PR handoff. If the user wants an isolated workspace, invoke `using-git-worktrees` manually before execution.
+5. **implementation** - `subagent-driven-development` or `executing-plans` start from an engineering-approved current plan, run workspace-readiness checks, and execute the plan. The completion flow then runs `requesting-code-review`, requires `document-release` for workflow-routed work, may offer `qa-only` when browser QA is warranted, and then proceeds to final branch cleanup or PR handoff. If the user wants an isolated workspace, invoke `using-git-worktrees` manually before execution.
 
 Implementation starts from an engineering-approved current plan and the exact approved plan path. `plan-eng-review` presents that handoff, and `superpowers-plan-execution recommend --plan <approved-plan-path>` chooses between *subagent-driven-development* and *executing-plans*. In both cases, execution runs a workspace-readiness preflight, executes the plan task by task, reviews before completion, and hands off through the normal branch-finishing flow.
 

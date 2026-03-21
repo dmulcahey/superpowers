@@ -92,6 +92,8 @@ require_pattern skills/finishing-a-development-branch/SKILL.md 'FEATURE_WORKTREE
 require_pattern skills/finishing-a-development-branch/SKILL.md "RELEASE-NOTES.md"
 require_pattern skills/finishing-a-development-branch/SKILL.md 'bin/superpowers-slug'
 require_pattern skills/finishing-a-development-branch/SKILL.md 'required `document-release` pass'
+require_pattern skills/finishing-a-development-branch/SKILL.md 'For workflow-routed work, if the repo has release-facing docs or metadata'
+require_pattern skills/finishing-a-development-branch/SKILL.md 'For ad-hoc or non-workflow-routed work, keep `document-release` available as an optional cleanup pass'
 require_pattern skills/finishing-a-development-branch/SKILL.md "Gate F-style"
 require_pattern skills/finishing-a-development-branch/SKILL.md "documentation has been refreshed"
 require_pattern skills/finishing-a-development-branch/SKILL.md "release notes or equivalent release-history updates are ready"
@@ -150,6 +152,9 @@ require_pattern README.md "qa-only"
 require_pattern README.md "~/.superpowers/projects/"
 require_pattern README.md 'required `document-release` handoff'
 require_pattern README.md 'conditional `qa-only` handoff for browser-facing work'
+require_pattern README.md 'FINISH_BRANCH --> DOC_RELEASE["workflow-routed work: required document-release<br/>ad-hoc work: optional release/doc cleanup"]'
+require_pattern README.md 'DOC_RELEASE --> QA_OR_COMPLETE["conditional qa-only for browser-facing work,<br/>then PR / merge / keep-branch completion flow"]'
+require_pattern README.md 'The completion flow then runs `requesting-code-review`, requires `document-release` for workflow-routed work, may offer `qa-only` when browser QA is warranted'
 require_pattern docs/README.codex.md "document-release"
 require_pattern docs/README.codex.md "qa-only"
 require_pattern docs/README.copilot.md "document-release"
