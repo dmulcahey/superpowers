@@ -295,3 +295,14 @@
 **Verification:**
 - Manual inspection only: Created commit a6af020 (test: cover using-superpowers bypass state machine).
 **Invalidation Reason:** Post-review fix changed the generator, generated skill doc, and regression tests after the previous Step 7 commit, so the recorded commit step is stale.
+
+#### Attempt 2
+**Status:** Completed
+**Recorded At:** 2026-03-21T16:01:16Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Committed the review-driven explicit skill-name re-entry fix, updated regression coverage, and refreshed execution tracking artifacts.
+**Files:**
+- None (no repo file changed)
+**Verification:**
+- Manual inspection only: Created commit c7a5156 (test: cover explicit skill re-entry in bypass gate).
+**Invalidation Reason:** N/A

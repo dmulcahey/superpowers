@@ -314,9 +314,7 @@ Expected: PASS
 - [x] **Step 6: Use verification-before-completion and prepare the review handoff**
 Invoke `superpowers:verification-before-completion`, capture the verification results above, and ensure the working tree contains only the intended changes for this plan slice.
 
-- [ ] **Step 7: Commit the regression coverage and verification updates**
-
-  **Execution Note:** Active - Commit the regression coverage and verification updates
+- [x] **Step 7: Commit the regression coverage and verification updates**
 ```bash
 git add tests/codex-runtime/test-using-superpowers-bypass.sh tests/codex-runtime/test-runtime-instructions.sh tests/codex-runtime/skill-doc-contracts.test.mjs
 git commit -m "test: cover using-superpowers bypass state machine"
