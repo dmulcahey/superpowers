@@ -28,6 +28,7 @@
 - `tests/codex-runtime/test-using-superpowers-bypass.sh` already covers the decision-file wording contract, but not the first-turn entrypoint guarantee.
 - `tests/codex-runtime/test-superpowers-workflow-status.sh`, `tests/codex-runtime/test-superpowers-plan-execution.sh`, and `tests/codex-runtime/test-superpowers-slug.sh` already provide strong regression surfaces for helper behavior that must keep passing after the shared-library migration.
 - Workflow skill templates under `skills/*/SKILL.md.tmpl` already own the repo-writing stages that need the new protected-branch preflight.
+- `references/search-before-building.md` plus `tests/evals/search-before-building-contract.orchestrator.md` already define a shared prompt-surface contract for representative design/review surfaces such as `brainstorming`; this plan must preserve that contract when it edits those skills.
 
 ## Planned File Structure
 
@@ -125,6 +126,7 @@ This ordering is mandatory. Do not start workflow-stage adoption or public-contr
   - workflow-sequencing and workflow-enhancement regressions
   - first-turn session-entry gate regression
   - post-bypass `using-superpowers` routing eval through the checked-in orchestrator/runner/judge flow
+  - Search-Before-Building contract eval when touched workflow skill or doc surfaces overlap that shared prompt contract
 - Final validation:
   - full targeted matrix from Task 6
   - `superpowers:verification-before-completion` before handoff
@@ -461,6 +463,7 @@ git commit -m "feat: harden runtime-owned session entry"
 - Test: `node scripts/gen-skill-docs.mjs --check`
 - Test: `bash tests/codex-runtime/test-workflow-enhancements.sh`
 - Test: `bash tests/codex-runtime/test-workflow-sequencing.sh`
+- Test: agent-executed Search-Before-Building contract evaluation using the checked-in orchestration entrypoint plus the runner/judge instruction set
 
 - [ ] **Step 1: Add red workflow-stage assertions for repo-safety preflight**
 ```bash
@@ -498,7 +501,11 @@ Expected: generated `SKILL.md` files match the updated templates.
 Run: `node scripts/gen-skill-docs.mjs --check && bash tests/codex-runtime/test-workflow-enhancements.sh && bash tests/codex-runtime/test-workflow-sequencing.sh`
 Expected: PASS with the repo-safety gate present at every repo-writing stage, the explicit approval rescue flow documented consistently, and the gate still absent from read-only flows.
 
-- [ ] **Step 6: Commit the workflow adoption slice**
+- [ ] **Step 6: Re-run the shared Search-Before-Building contract gate**
+Run the checked-in orchestration flow defined in `tests/evals/search-before-building-contract.orchestrator.md`.
+Expected: PASS for the representative scenario matrix, proving the touched workflow skill surfaces still treat Layer 2 as input-not-authority, preserve sanitization/fallback language, and do not regress the shared Search-Before-Building contract.
+
+- [ ] **Step 7: Commit the workflow adoption slice**
 ```bash
 git add skills/brainstorming/SKILL.md.tmpl skills/plan-ceo-review/SKILL.md.tmpl skills/writing-plans/SKILL.md.tmpl skills/plan-eng-review/SKILL.md.tmpl skills/executing-plans/SKILL.md.tmpl skills/subagent-driven-development/SKILL.md.tmpl skills/document-release/SKILL.md.tmpl skills/finishing-a-development-branch/SKILL.md.tmpl skills/brainstorming/SKILL.md skills/plan-ceo-review/SKILL.md skills/writing-plans/SKILL.md skills/plan-eng-review/SKILL.md skills/executing-plans/SKILL.md skills/subagent-driven-development/SKILL.md skills/document-release/SKILL.md skills/finishing-a-development-branch/SKILL.md tests/codex-runtime/test-workflow-enhancements.sh tests/codex-runtime/test-workflow-sequencing.sh tests/codex-runtime/skill-doc-contracts.test.mjs
 git commit -m "feat: gate repo-writing workflow stages on protected branches"
@@ -522,6 +529,7 @@ git commit -m "feat: gate repo-writing workflow stages on protected branches"
 - Test: `bash tests/codex-runtime/test-superpowers-slug.sh`
 - Test: `bash tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh`
 - Test: agent-executed routing evaluation using the checked-in orchestration entrypoint plus the runner/judge instruction set
+- Test: agent-executed Search-Before-Building contract evaluation using the checked-in orchestration entrypoint plus the runner/judge instruction set
 
 - [ ] **Step 1: Refresh the docs/testing guidance**
 Verify that the docs already updated in Task 4 still explicitly distinguish:
@@ -553,6 +561,9 @@ Expected: PASS.
 
 Run the checked-in orchestration flow defined in `tests/evals/using-superpowers-routing.orchestrator.md`.
 Expected: PASS for the full repo-versioned routing matrix, including the bootstrap-adjacent post-bypass scenario added in Task 4.
+
+Run the checked-in orchestration flow defined in `tests/evals/search-before-building-contract.orchestrator.md`.
+Expected: PASS for the representative Search-Before-Building matrix after the workflow skill and doc changes in this plan.
 
 - [ ] **Step 3: Run `superpowers:verification-before-completion`**
 Confirm the helper binaries, generated docs, and regression surfaces all pass before handoff.
