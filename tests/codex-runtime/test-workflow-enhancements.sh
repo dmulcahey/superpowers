@@ -96,6 +96,10 @@ require_pattern skills/finishing-a-development-branch/SKILL.md "Gate F-style"
 require_pattern skills/finishing-a-development-branch/SKILL.md "documentation has been refreshed"
 require_pattern skills/finishing-a-development-branch/SKILL.md "release notes or equivalent release-history updates are ready"
 require_pattern skills/finishing-a-development-branch/SKILL.md "require the existing QA handoff when the change type or test-plan artifact clearly warrants browser QA"
+require_pattern skills/finishing-a-development-branch/SKILL.md "When browser QA is clearly warranted, do not present a skip option."
+require_pattern skills/finishing-a-development-branch/SKILL.md 'Possible options when browser QA is required:'
+require_pattern skills/finishing-a-development-branch/SKILL.md 'Possible options when browser QA is optional:'
+require_pattern skills/finishing-a-development-branch/SKILL.md '- `B)` Skip QA handoff this time'
 require_pattern skills/requesting-code-review/SKILL.md "target base branch"
 
 require_pattern review/checklist.md "Spec / Plan Delivery Content"

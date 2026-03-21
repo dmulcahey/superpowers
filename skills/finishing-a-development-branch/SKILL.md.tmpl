@@ -77,14 +77,19 @@ printf '%s\n' "$PLAN_ARTIFACT"
 
 If `PLAN_ARTIFACT` exists, read it before deciding whether browser QA applies.
 
-If a branch-specific test-plan artifact exists and it names pages, routes, or browser interactions, or the current change is clearly browser-facing, offer an optional handoff to `superpowers:qa-only` before completion options.
+If a branch-specific test-plan artifact exists and it names pages, routes, or browser interactions, or the current change is clearly browser-facing, require the existing QA handoff before completion options.
 
 Recommendation logic:
 - Recommend `A)` when a branch-specific test-plan artifact exists and it points at pages, routes, or browser interactions
 - Recommend `A)` when user-visible routes, forms, or browser flows changed
 - Skip the handoff when the branch is clearly non-browser work, even if a generic test-plan artifact exists
 
-Possible options:
+When browser QA is clearly warranted, do not present a skip option.
+
+Possible options when browser QA is required:
+- `A)` Run `superpowers:qa-only` now and return here after the report is written
+
+Possible options when browser QA is optional:
 - `A)` Run `superpowers:qa-only` now and return here after the report is written
 - `B)` Skip QA handoff this time
 

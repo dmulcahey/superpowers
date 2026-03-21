@@ -121,6 +121,11 @@ require_pattern skills/plan-eng-review/SKILL.md "ordered implementation steps"
 require_pattern skills/plan-eng-review/SKILL.md "documentation update expectations"
 require_pattern skills/plan-eng-review/SKILL.md "evidence expectations"
 require_pattern skills/plan-eng-review/SKILL.md "explicit risks"
+require_pattern skills/plan-eng-review/SKILL.md "web/UI: user flow, navigation impact"
+require_pattern skills/plan-eng-review/SKILL.md "API/service/backend: request/response contracts"
+require_pattern skills/plan-eng-review/SKILL.md "data/ETL: schema evolution"
+require_pattern skills/plan-eng-review/SKILL.md "infrastructure/IaC: blast radius"
+require_pattern skills/plan-eng-review/SKILL.md "library/SDK: public API changes"
 require_pattern skills/plan-eng-review/SKILL.md 'Accelerated review is available only when the user explicitly requests `accelerated` or `accelerator` mode for the current engineering review.'
 require_pattern skills/plan-eng-review/SKILL.md 'Do not activate accelerated review from heuristics, vague wording like "make this fast", saved preferences, or agent-only judgment.'
 require_pattern skills/plan-eng-review/SKILL.md 'Use `skills/plan-eng-review/accelerated-reviewer-prompt.md` when briefing the accelerated engineering reviewer subagent.'
