@@ -1,8 +1,8 @@
 # Using-Superpowers Session Bypass
 
-**Workflow State:** Draft
+**Workflow State:** CEO Approved
 **Spec Revision:** 1
-**Last Reviewed By:** brainstorming
+**Last Reviewed By:** plan-ceo-review
 
 ## Summary
 
@@ -53,32 +53,44 @@ The question should present a binary choice:
 
 If the user chooses Superpowers:
 
-- do not write a bypass flag
+- write the session decision as `enabled`
 - continue through the normal `using-superpowers` stack on the same turn
 
 If the user chooses bypass:
 
-- write a session-scoped bypass flag
+- write the session decision as `bypassed`
 - stop `using-superpowers` immediately
 - do not run update checks
 - do not write or refresh Superpowers session markers
 - do not load contributor-mode state
 - do not perform skill routing or workflow-stage takeover
 
-On later turns while bypass is active:
+On later turns while the session decision is `bypassed`:
 
 - if the user does not explicitly request Superpowers, `using-superpowers` should remain silent and stop before the normal stack
-- if the user explicitly says `use superpowers` or explicitly names a Superpowers skill, clear the bypass flag and resume the normal stack on that same turn
+- if the user explicitly says `use superpowers` or explicitly names a Superpowers skill, rewrite the session decision to `enabled` and resume the normal stack on that same turn
+
+On later turns while the session decision is `enabled`:
+
+- do not ask the opt-out question again in that session
+- continue directly into the normal `using-superpowers` stack
 
 ## Session Scope And State Model
 
 Bypass state is session-scoped and should use the same process-session identity family already used by the generated preamble.
 
-Store the state as a sentinel file:
+Store the state as a session decision file:
 
 ```text
-~/.superpowers/session-flags/using-superpowers-bypass/$PPID
+~/.superpowers/session-flags/using-superpowers/$PPID
 ```
+
+The file content should be one explicit value:
+
+- `enabled`
+- `bypassed`
+
+Any other content is malformed state, not a third valid mode.
 
 Rationale:
 
@@ -103,8 +115,8 @@ Responsibilities:
 - detect the Superpowers root
 - capture repo and branch grounding needed for the question
 - derive the state directory
-- derive the bypass sentinel path for the current session
-- determine whether bypass is active
+- derive the session decision file path for the current session
+- determine whether the current session is `enabled`, `bypassed`, or undecided
 - determine whether the current user message is an explicit request to re-enter Superpowers
 - ask the first-turn opt-out question when no bypass decision exists yet
 
@@ -115,6 +127,14 @@ The bootstrap must not:
 - prune or count session markers
 - load contributor-mode config
 - perform workflow routing
+
+The first-turn opt-out question is a deliberate exception to the shared `_SESSIONS` and ELI16 grounding behavior used by the normal generated interactive-question contract.
+
+For this question only:
+
+- do not compute `_SESSIONS`
+- do not apply the shared ELI16 multi-session grounding rule
+- use the normal context / recommendation / option structure, but treat the question as a pre-Superpowers gate rather than a normal in-stack Superpowers interactive question
 
 ### Full Superpowers Stack
 
@@ -135,21 +155,25 @@ user message
     v
 minimal using-superpowers bootstrap
     |
-    +--> explicit re-entry request while bypass flag exists?
+    +--> explicit re-entry request while session decision is bypassed?
     |       |
-    |       +--> yes: clear bypass flag -> continue to full stack
+    |       +--> yes: write decision=enabled -> continue to full stack
     |
-    +--> bypass flag exists?
+    +--> session decision = enabled?
+    |       |
+    |       +--> yes: continue to full stack
+    |
+    +--> session decision = bypassed?
     |       |
     |       +--> yes: stop and bypass Superpowers for this turn
     |
-    +--> bypass decision missing?
+    +--> session decision missing?
             |
             +--> yes: ask opt-out question
                     |
-                    +--> choose Superpowers -> continue to full stack
+                    +--> choose Superpowers -> write decision=enabled -> continue to full stack
                     |
-                    +--> choose bypass -> write bypass flag -> stop
+                    +--> choose bypass -> write decision=bypassed -> stop
 
 full Superpowers stack
     |
@@ -163,7 +187,7 @@ full Superpowers stack
 
 Re-entry must be explicit, not heuristic.
 
-The following should clear the bypass flag and resume normal behavior on the same turn:
+The following should rewrite the session decision to `enabled` and resume normal behavior on the same turn:
 
 - `use superpowers`
 - direct naming of a Superpowers skill, such as:
@@ -184,13 +208,28 @@ This means the matching logic should prioritize clear references to:
 
 Bypass state errors must fail closed to normal Superpowers behavior.
 
-If the bootstrap cannot read or write the bypass sentinel safely:
+If the bootstrap cannot read or write the session decision file safely:
 
 - do not silently bypass
 - continue to the normal `using-superpowers` stack
 - preserve the conservative routing posture
 
 This is important because accidental suppression of the entry router is riskier than an extra Superpowers question.
+
+If the session decision file exists but contains malformed content:
+
+- do not treat it as `enabled`
+- do not treat it as `bypassed`
+- ignore it for bypass purposes on that turn
+- continue to normal Superpowers behavior
+- only rewrite the file after the user makes a fresh explicit choice through the opt-out gate or explicit re-entry path
+
+If the user explicitly requests re-entry but the bootstrap cannot rewrite the session decision to `enabled`:
+
+- honor the explicit re-entry request for the current turn
+- continue through the normal `using-superpowers` stack on that turn
+- do not pretend persistence succeeded
+- treat the session as undecided on future turns until a later write succeeds
 
 ## Implementation Plan
 
@@ -202,12 +241,14 @@ The dedicated bootstrap should include:
 
 - runtime-root detection
 - repo root and branch capture
-- state-dir and bypass-path derivation
+- state-dir and session-decision-path derivation
+- the special-case pre-Superpowers opt-out question contract
 
 It should exclude:
 
 - update-check execution
 - session-marker creation and pruning
+- `_SESSIONS` computation
 - contributor-mode reads
 
 ### `using-superpowers` Skill Template
@@ -217,10 +258,12 @@ Update `skills/using-superpowers/SKILL.md.tmpl` to define a top-level bypass gat
 That section should specify:
 
 - ask before any other normal Superpowers behavior
-- write the sentinel file when the user chooses bypass
+- write `enabled` or `bypassed` when the user answers the opt-out question
 - stop immediately after bypass is chosen
 - remain silent on later turns while bypass is active
-- clear the sentinel and proceed when the user explicitly re-enters
+- proceed directly while the session decision is `enabled`
+- rewrite the decision to `enabled` and proceed when the user explicitly re-enters
+- treat the opt-out question as exempt from the shared `_SESSIONS` / ELI16 rule
 
 ### Generated Skill Doc
 
@@ -249,14 +292,31 @@ Add or update tests at the contract level:
 
 - stop assuming every generated base preamble includes `_UPD`, `_SESSIONS`, and `_CONTRIB`
 - add dedicated assertions for the `using-superpowers` bootstrap contract
-- assert that the generated `using-superpowers` doc includes bypass-gate language, session-bypass path derivation, explicit re-entry handling, and the requirement to ask before normal Superpowers behavior
+- assert that the generated `using-superpowers` doc includes bypass-gate language, session-decision path derivation, explicit re-entry handling, `enabled` versus `bypassed` state handling, and the requirement to ask before normal Superpowers behavior
+- assert that the generated `using-superpowers` doc marks the opt-out question as exempt from the shared `_SESSIONS` / ELI16 rule
 
 ### `tests/codex-runtime/test-runtime-instructions.sh`
 
 - require patterns covering the bypass gate
-- require patterns covering the session-scoped sentinel path
+- require patterns covering the session-scoped decision-file path and explicit state values
 - require patterns covering explicit re-entry behavior
 - require wording that bypass happens before update checks, session tracking, contributor mode, and routing
+- require wording that the opt-out question is a special pre-Superpowers question that does not use `_SESSIONS` or ELI16 mode
+
+### `tests/codex-runtime/test-using-superpowers-bypass.sh`
+
+Add a dedicated behavior-level shell regression test that runs in a temp state directory and exercises the decision-file state machine directly.
+
+Minimum scenarios:
+
+- no decision file yet -> first-turn contract requires the opt-out gate before normal stack behavior
+- decision file contains `enabled` -> do not ask again and proceed to the normal stack
+- decision file contains `bypassed` -> bypass the normal stack unless explicit re-entry is requested
+- explicit re-entry request while `bypassed` -> current turn proceeds and the decision attempts to become `enabled`
+- malformed decision file -> ignore malformed state, do not bypass, and wait for a fresh explicit choice
+- decision-file write failure during explicit re-entry -> honor the current turn, but leave future turns undecided unless persistence later succeeds
+
+This test should stay narrow and deterministic. It does not need a new doc-driven eval orchestrator or live subagent matrix.
 
 Freshness validation remains required:
 
@@ -267,13 +327,17 @@ node scripts/gen-skill-docs.mjs --check
 ## Edge Cases
 
 - User chooses bypass, then immediately asks for `brainstorming` on the next turn:
-  clear bypass and continue through the normal stack on that turn.
+  rewrite the decision to `enabled` and continue through the normal stack on that turn.
 - User chooses bypass, then asks a generic product question without naming Superpowers:
   keep bypass active.
-- Bypass flag file is missing after the user previously chose bypass:
+- Session decision file is missing after the user previously answered the prompt:
   treat the session as not bypassed and ask again if needed.
-- Bypass flag path cannot be created because of filesystem or permission issues:
+- Session decision file path cannot be created because of filesystem or permission issues:
   fail closed to normal Superpowers behavior.
+- Session decision file contains malformed content such as an empty string, multiple lines, or an unknown value:
+  ignore the malformed state, do not bypass, and wait for a fresh explicit choice before rewriting it.
+- Explicit re-entry is requested but the decision file cannot be rewritten to `enabled`:
+  continue for the current turn because the user explicitly asked for Superpowers, but leave future turns undecided until persistence succeeds.
 - User says something ambiguous like `use planning` without naming Superpowers:
   do not treat that as re-entry.
 
@@ -290,4 +354,3 @@ Record these as future considerations rather than part of v1:
 - decide whether a repo-scoped or globally remembered bypass preference is ever desirable
 - decide whether entry-session state should eventually move behind a runtime helper
 - evaluate whether bypass behavior deserves dedicated eval scenarios beyond the existing skill-doc/runtime contract tests
-
