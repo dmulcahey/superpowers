@@ -109,6 +109,13 @@ If the session decision file exists but contains malformed content:
 - ignore it for bypass purposes on that turn
 - continue to normal Superpowers behavior
 - only rewrite the file after a fresh explicit choice
+
+If the user explicitly requests re-entry but the bootstrap cannot rewrite the session decision to \`enabled\`:
+
+- honor the explicit re-entry request for the current turn
+- continue through the normal Superpowers stack on that turn
+- do not pretend persistence succeeded
+- treat future turns as undecided until a later write succeeds
 `;
 }
 

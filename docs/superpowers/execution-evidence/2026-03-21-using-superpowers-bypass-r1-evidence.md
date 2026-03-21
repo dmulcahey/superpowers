@@ -166,3 +166,87 @@
 **Verification:**
 - Manual inspection only: node scripts/gen-skill-docs.mjs --check and bash tests/codex-runtime/test-runtime-instructions.sh both passed.
 **Invalidation Reason:** N/A
+
+### Task 2 Step 7
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-21T15:47:42Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Committed the Task 2 bypass-gate contract and doc alignment slice
+**Files:**
+- None (no repo file changed)
+**Verification:**
+- Manual inspection only: Created commit f6efe11 with the bypass-gate template, generated doc, runtime-doc, and contract-test updates.
+**Invalidation Reason:** N/A
+
+### Task 3 Step 1
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-21T15:48:44Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Added a red shell regression scaffold for the using-superpowers bypass contract
+**Files:**
+- tests/codex-runtime/test-using-superpowers-bypass.sh
+**Verification:**
+- Manual inspection only: Inspected the new shell scaffold and confirmed it asserts the decision path, enabled/bypassed states, malformed state, and re-entry write-failure wording.
+**Invalidation Reason:** N/A
+
+### Task 3 Step 2
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-21T15:49:15Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Ran the new shell regression and confirmed the re-entry write-failure contract is still missing
+**Files:**
+- None (no repo file changed)
+**Verification:**
+- `bash tests/codex-runtime/test-using-superpowers-bypass.sh` -> failed as expected: generated using-superpowers doc is missing the re-entry write-failure wording
+**Invalidation Reason:** N/A
+
+### Task 3 Step 3
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-21T15:53:09Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Implemented the minimum generated-contract assertions and shell harness support needed for deterministic bypass regression coverage without adding a new helper binary.
+**Files:**
+- None (no repo file changed)
+**Verification:**
+- Manual inspection only: Confirmed the generated using-superpowers contract includes the decision-state and explicit re-entry failure wording, and the focused shell regression now passes after creating the temp decision directory before fixture writes.
+**Invalidation Reason:** N/A
+
+### Task 3 Step 4
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-21T15:53:37Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Re-ran the focused using-superpowers bypass regression and confirmed the state-machine coverage passes.
+**Files:**
+- None (no repo file changed)
+**Verification:**
+- `bash tests/codex-runtime/test-using-superpowers-bypass.sh` -> PASS
+**Invalidation Reason:** N/A
+
+### Task 3 Step 5
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-21T15:54:13Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Ran the full targeted verification matrix for the using-superpowers bypass changes and confirmed the generator, runtime-contract, and regression coverage all pass.
+**Files:**
+- None (no repo file changed)
+**Verification:**
+- Manual inspection only: PASS: node --test tests/codex-runtime/gen-skill-docs.unit.test.mjs tests/codex-runtime/skill-doc-contracts.test.mjs; PASS: bash tests/codex-runtime/test-runtime-instructions.sh; PASS: bash tests/codex-runtime/test-using-superpowers-bypass.sh; PASS: node scripts/gen-skill-docs.mjs --check.
+**Invalidation Reason:** N/A
+
+### Task 3 Step 6
+#### Attempt 1
+**Status:** Completed
+**Recorded At:** 2026-03-21T15:54:49Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Applied verification-before-completion by confirming fresh verification evidence and checking that the working tree only contains the intended Task 3 slice plus plan-execution artifacts.
+**Files:**
+- None (no repo file changed)
+**Verification:**
+- Manual inspection only: Fresh verification evidence from Step 5 remains current, and git status/diff show only the expected runtime-contract files, the new shell regression, and the plan/evidence tracking updates for this approved slice.
+**Invalidation Reason:** N/A

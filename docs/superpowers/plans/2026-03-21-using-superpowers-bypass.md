@@ -234,9 +234,7 @@ Expected: PASS
 Run: `bash tests/codex-runtime/test-runtime-instructions.sh`
 Expected: PASS with the new bypass-gate wording and no stale unconditional-router language.
 
-- [ ] **Step 7: Commit the skill-template and doc updates**
-
-  **Execution Note:** Active - Commit the skill-template and doc updates
+- [x] **Step 7: Commit the skill-template and doc updates**
 ```bash
 git add \
   skills/using-superpowers/SKILL.md.tmpl \
@@ -260,7 +258,7 @@ git commit -m "feat: add using-superpowers bypass gate contract"
 - Test: `bash tests/codex-runtime/test-runtime-instructions.sh`
 - Test: `node scripts/gen-skill-docs.mjs --check`
 
-- [ ] **Step 1: Write the new red shell regression scaffold**
+- [x] **Step 1: Write the new red shell regression scaffold**
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
@@ -277,11 +275,11 @@ export SUPERPOWERS_STATE_DIR="$STATE_DIR"
 # - explicit re-entry write failure honors current turn only
 ```
 
-- [ ] **Step 2: Run the red behavior test**
+- [x] **Step 2: Run the red behavior test**
 Run: `bash tests/codex-runtime/test-using-superpowers-bypass.sh`
 Expected: FAIL because the decision-file bootstrap behavior is not implemented yet.
 
-- [ ] **Step 3: Implement the minimum runtime assertions needed for the new test**
+- [x] **Step 3: Implement the minimum runtime assertions needed for the new test**
 Add whatever minimal script/test helpers are needed so the shell regression can validate generated `using-superpowers` output and decision-file fixtures deterministically without introducing a new helper binary or a second handwritten copy of the state machine.
 
 The shell test should:
@@ -291,7 +289,7 @@ The shell test should:
 - exercise temp-dir state fixtures only where the generated contract explicitly describes the behavior
 - avoid embedding a parallel handwritten interpretation of the full bypass algorithm
 
-- [ ] **Step 4: Re-run the focused regression test**
+- [x] **Step 4: Re-run the focused regression test**
 Run: `bash tests/codex-runtime/test-using-superpowers-bypass.sh`
 Expected: PASS for:
 - `enabled`
@@ -300,7 +298,7 @@ Expected: PASS for:
 - explicit re-entry
 - explicit re-entry write failure
 
-- [ ] **Step 5: Run the combined verification matrix**
+- [x] **Step 5: Run the combined verification matrix**
 Run: `node --test tests/codex-runtime/gen-skill-docs.unit.test.mjs tests/codex-runtime/skill-doc-contracts.test.mjs`
 Expected: PASS
 
@@ -313,10 +311,12 @@ Expected: PASS
 Run: `node scripts/gen-skill-docs.mjs --check`
 Expected: PASS
 
-- [ ] **Step 6: Use verification-before-completion and prepare the review handoff**
+- [x] **Step 6: Use verification-before-completion and prepare the review handoff**
 Invoke `superpowers:verification-before-completion`, capture the verification results above, and ensure the working tree contains only the intended changes for this plan slice.
 
 - [ ] **Step 7: Commit the regression coverage and verification updates**
+
+  **Execution Note:** Active - Commit the regression coverage and verification updates
 ```bash
 git add tests/codex-runtime/test-using-superpowers-bypass.sh tests/codex-runtime/test-runtime-instructions.sh tests/codex-runtime/skill-doc-contracts.test.mjs
 git commit -m "test: cover using-superpowers bypass state machine"
