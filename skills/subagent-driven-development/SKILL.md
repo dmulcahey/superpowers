@@ -151,9 +151,9 @@ digraph process {
 
     subgraph cluster_per_task {
         label="Per Task";
-        "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
+        "Build task packet + dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
         "Implementer subagent asks questions?" [shape=diamond];
-        "Answer questions, provide context" [shape=box];
+        "Answer from packet or escalate ambiguity" [shape=box];
         "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
         "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
         "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
@@ -164,15 +164,15 @@ digraph process {
         "Confirm task's plan steps are checked off in approved plan" [shape=box];
     }
 
-    "Read plan, extract all tasks with full text and note context" [shape=box];
+    "Read plan, build a task packet per task" [shape=box];
     "More tasks remain?" [shape=diamond];
     "Use superpowers:requesting-code-review for final review gate" [shape=box];
     "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
-    "Read plan, extract all tasks with full text and note context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
-    "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
-    "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
-    "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Read plan, build a task packet per task" -> "Build task packet + dispatch implementer subagent (./implementer-prompt.md)";
+    "Build task packet + dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
+    "Implementer subagent asks questions?" -> "Answer from packet or escalate ambiguity" [label="yes"];
+    "Answer from packet or escalate ambiguity" -> "Build task packet + dispatch implementer subagent (./implementer-prompt.md)";
     "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
     "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
     "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
@@ -184,7 +184,7 @@ digraph process {
     "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
     "Code quality reviewer subagent approves?" -> "Confirm task's plan steps are checked off in approved plan" [label="yes"];
     "Confirm task's plan steps are checked off in approved plan" -> "More tasks remain?";
-    "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
+    "More tasks remain?" -> "Build task packet + dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
     "More tasks remain?" -> "Use superpowers:requesting-code-review for final review gate" [label="no"];
     "Use superpowers:requesting-code-review for final review gate" -> "Use superpowers:finishing-a-development-branch";
 }
@@ -276,6 +276,8 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 
 **NEEDS_CONTEXT:** The implementer needs information that wasn't provided. Provide the missing context and re-dispatch.
 
+If the question is already answered by the packet, answer directly from the packet. If the packet does not answer it, the task is ambiguous and execution must stop or route back to review.
+
 **BLOCKED:** The implementer cannot complete the task. Assess the blocker:
 1. If it's a context problem, provide more context and re-dispatch with the same model
 2. If the task requires more reasoning, re-dispatch with a more capable model
@@ -290,23 +292,30 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 - `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
 - `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
 
+## Packet Contract
+
+- Build a task packet from the approved plan/spec pair before every implementation or review dispatch.
+- pass the packet verbatim to implementer and reviewers.
+- Treat packet content as the authoritative execution contract for that task slice; do not paraphrase or weaken requirement statements.
+- Controllers may add transient logistics such as branch, working directory, or base commit, but they may not add new semantic requirements.
+- If the packet does not answer it, the task is ambiguous and execution must stop or route back to review.
+
 ## Example Workflow
 
 ```
 You: I'm using Subagent-Driven Development to execute this plan.
 
 [Read plan file once: docs/superpowers/plans/feature-plan.md]
-[Extract all 5 tasks with full text and context]
+[Build the task packet for Task 1 from the approved plan/spec pair]
 [Use the approved plan as the execution-progress record]
 
 Task 1: Shared install migration docs
 
-[Get Task 1 text and context (already extracted)]
-[Dispatch implementation subagent with full task text + context]
+[Dispatch implementation subagent with the packet verbatim]
 
 Implementer: "Before I begin - should the migration docs include both Unix shell and PowerShell commands?"
 
-You: "Yes. Keep the shared install root at ~/.superpowers/install and document both shells."
+You: "The packet already requires both shells. Keep the shared install root at ~/.superpowers/install and document both shells."
 
 Implementer: "Got it. Implementing now..."
 [Later] Implementer:
@@ -325,8 +334,8 @@ Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
 
 Task 2: Recovery modes
 
-[Get Task 2 text and context (already extracted)]
-[Dispatch implementation subagent with full task text + context]
+[Build the task packet for Task 2]
+[Dispatch implementation subagent with the packet verbatim]
 
 Implementer: [No questions, proceeds]
 Implementer:
