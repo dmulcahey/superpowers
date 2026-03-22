@@ -403,6 +403,52 @@ EOF
   fi
 }
 
+run_contrastive_superpowers_clause_triggers_reentry() {
+  local message_file
+  local decision_path
+  local output
+
+  message_file="$(write_message_file contrastive-superpowers-message.txt <<'EOF'
+Do not use brainstorming, but use superpowers for this task.
+EOF
+)"
+  decision_path="$(decision_path_for_key "contrastive-superpowers")"
+  mkdir -p "$(dirname "$decision_path")"
+  printf 'bypassed\n' > "$decision_path"
+
+  output="$(run_json_command "contrastive superpowers clause" resolve --message-file "$message_file" --session-key "contrastive-superpowers")"
+  assert_json_equals "$output" "outcome" "enabled" "contrastive superpowers clause"
+  assert_json_equals "$output" "decision_source" "explicit_reentry" "contrastive superpowers clause"
+  assert_json_equals "$output" "persisted" "true" "contrastive superpowers clause"
+  if [[ "$(cat "$decision_path")" != "enabled" ]]; then
+    echo "Expected contrastive superpowers clause to persist enabled decision"
+    exit 1
+  fi
+}
+
+run_contrastive_skill_clause_triggers_reentry() {
+  local message_file
+  local decision_path
+  local output
+
+  message_file="$(write_message_file contrastive-skill-message.txt <<'EOF'
+Do not use brainstorming, but use writing-plans for this task.
+EOF
+)"
+  decision_path="$(decision_path_for_key "contrastive-skill")"
+  mkdir -p "$(dirname "$decision_path")"
+  printf 'bypassed\n' > "$decision_path"
+
+  output="$(run_json_command "contrastive skill clause" resolve --message-file "$message_file" --session-key "contrastive-skill")"
+  assert_json_equals "$output" "outcome" "enabled" "contrastive skill clause"
+  assert_json_equals "$output" "decision_source" "explicit_reentry" "contrastive skill clause"
+  assert_json_equals "$output" "persisted" "true" "contrastive skill clause"
+  if [[ "$(cat "$decision_path")" != "enabled" ]]; then
+    echo "Expected contrastive skill clause to persist enabled decision"
+    exit 1
+  fi
+}
+
 run_explicit_reentry_write_failure_is_unpersisted() {
   local message_file
   local decision_path
@@ -482,6 +528,8 @@ run_use_no_superpowers_does_not_trigger_reentry
 run_never_use_skill_request_does_not_trigger_reentry
 run_long_negated_skill_request_does_not_trigger_reentry
 run_long_negated_superpowers_request_does_not_trigger_reentry
+run_contrastive_superpowers_clause_triggers_reentry
+run_contrastive_skill_clause_triggers_reentry
 run_explicit_reentry_write_failure_is_unpersisted
 run_record_persists_enabled_choice
 run_record_rejects_invalid_decision

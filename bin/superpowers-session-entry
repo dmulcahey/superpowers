@@ -192,7 +192,7 @@ message_requests_reentry() {
       prev2="$prev1"
       prev1="$token"
     done < <(printf '%s\n' "$normalized" | tr -cs '[:alnum:]$:_-' '\n')
-  done < <(printf '%s\n' "$lowered" | tr '.!?;\n' '\n')
+  done < <(printf '%s\n' "$lowered" | tr ',.!?;\n' '\n')
 
   shopt -u nullglob
   return 1
