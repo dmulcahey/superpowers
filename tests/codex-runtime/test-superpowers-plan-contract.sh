@@ -148,6 +148,20 @@ run_markdown_command() {
   printf '%s\n' "$output"
 }
 
+run_json_command_with_env() {
+  local repo_dir="$1"
+  shift
+  local output
+  local status=0
+  output="$(cd "$repo_dir" && env "$@" 2>&1)" || status=$?
+  if [[ $status -ne 0 ]]; then
+    echo "Expected command to succeed: $*"
+    printf '%s\n' "$output"
+    exit 1
+  fi
+  printf '%s\n' "$output"
+}
+
 run_command_fails() {
   local repo_dir="$1"
   local expected_class="$2"
@@ -257,7 +271,7 @@ test_build_task_packet_json_preserves_exact_contract_text() {
   assert_json_equals "$output" "requirement_ids.2" "DEC-001" "packet"
   assert_json_equals "$output" "persisted" "false" "packet"
   assert_json_equals "$output" "cache_status" "ephemeral" "packet"
-  assert_contains "$output" "Execution-bound specs must include a parseable `Requirement Index`" "packet"
+  assert_contains "$output" 'Execution-bound specs must include a parseable `Requirement Index`' "packet"
   assert_contains "$output" "## Task 1: Establish the plan contract" "packet"
 }
 
@@ -270,7 +284,7 @@ test_build_task_packet_markdown_preserves_exact_contract_text() {
   assert_contains "$output" "## Task Packet" "markdown packet"
   assert_contains "$output" "**Plan Path:** \`$PLAN_REL\`" "markdown packet"
   assert_contains "$output" "## Task 2: Dispatch exact packet-backed execution" "markdown packet"
-  assert_contains "$output" "Superpowers must provide a derived `superpowers-plan-contract` helper that lints traceability and builds canonical task packets." "markdown packet"
+  assert_contains "$output" 'Superpowers must provide a derived `superpowers-plan-contract` helper that lints traceability and builds canonical task packets.' "markdown packet"
   assert_contains "$output" "**Open Questions:** none" "markdown packet"
 }
 
@@ -407,6 +421,37 @@ test_build_task_packet_detects_tampered_cache_and_regenerates() {
   assert_contains "$(cat "$packet_path")" "Dispatch exact packet-backed execution" "regenerated packet file"
 }
 
+test_persisted_packet_cache_prunes_old_entries() {
+  reset_artifacts
+  install_valid_artifacts
+
+  local first_output packet_path packet_dir retained_count
+  first_output="$(run_json_command_with_env "$REPO_DIR" SUPERPOWERS_PLAN_PACKET_RETENTION=2 "$HELPER_BIN" build-task-packet --plan "$PLAN_REL" --task 1 --format json --persist yes)"
+  packet_path="$(json_value "$first_output" "packet_path")"
+  packet_dir="$(dirname "$packet_path")"
+
+  printf 'stale one\n' > "$packet_dir/stale-one.packet.md"
+  printf 'stale two\n' > "$packet_dir/stale-two.packet.md"
+  printf 'stale three\n' > "$packet_dir/stale-three.packet.md"
+  touch -t 202603220101 "$packet_dir/stale-one.packet.md"
+  touch -t 202603220102 "$packet_dir/stale-two.packet.md"
+  touch -t 202603220103 "$packet_dir/stale-three.packet.md"
+
+  run_json_command_with_env "$REPO_DIR" SUPERPOWERS_PLAN_PACKET_RETENTION=2 "$HELPER_BIN" build-task-packet --plan "$PLAN_REL" --task 1 --format json --persist yes >/dev/null
+
+  retained_count="$(find "$packet_dir" -maxdepth 1 -name '*.packet.md' | wc -l | tr -d ' ')"
+  if [[ "$retained_count" != "2" ]]; then
+    echo "Expected packet cache retention to keep exactly 2 packet files"
+    echo "Actual count: $retained_count"
+    find "$packet_dir" -maxdepth 1 -name '*.packet.md' -print | sort
+    exit 1
+  fi
+  if [[ ! -f "$packet_path" ]]; then
+    echo "Expected the current task packet to remain after retention pruning"
+    exit 1
+  fi
+}
+
 require_helper
 require_fixtures
 init_repo "$REPO_DIR"
@@ -426,5 +471,6 @@ test_path_traversal_in_files_block_fails
 test_build_task_packet_fails_for_unknown_task
 test_build_task_packet_detects_stale_plan_revision_and_regenerates
 test_build_task_packet_detects_tampered_cache_and_regenerates
+test_persisted_packet_cache_prunes_old_entries
 
 echo "Plan-contract helper regression test passed."
