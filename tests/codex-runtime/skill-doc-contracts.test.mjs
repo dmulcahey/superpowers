@@ -286,6 +286,29 @@ test('execution workflow skills reference the plan-execution helper contract', (
   assert.match(subagentReviewPrompt, /EXECUTION_EVIDENCE_PATH: \[helper-reported evidence path for plan-routed final review, otherwise blank\]/);
 });
 
+test('repo-writing workflow skills document the protected-branch repo-safety gate consistently', () => {
+  const expectedTargets = {
+    brainstorming: /spec-artifact-write/,
+    'plan-ceo-review': /approval-header-write/,
+    'writing-plans': /plan-artifact-write/,
+    'plan-eng-review': /approval-header-write/,
+    'executing-plans': /execution-task-slice/,
+    'subagent-driven-development': /execution-task-slice/,
+    'document-release': /release-doc-write/,
+    'finishing-a-development-branch': /branch-finish/,
+  };
+
+  for (const [skill, targetPattern] of Object.entries(expectedTargets)) {
+    const content = readUtf8(getSkillPath(skill));
+    assert.match(content, /Protected-Branch Repo-Write Gate/, `${skill} should document the protected-branch gate`);
+    assert.match(content, /superpowers-repo-safety check --intent write/, `${skill} should run the repo-safety check`);
+    assert.match(content, /superpowers-repo-safety approve --stage/, `${skill} should document the approval rescue flow`);
+    assert.match(content, /superpowers:using-git-worktrees/, `${skill} should route blocked writes to using-git-worktrees`);
+    assert.match(content, /branch, the stage, and the blocking `failure_class`/, `${skill} should surface blocked-write diagnostics`);
+    assert.match(content, targetPattern, `${skill} should use the correct write target family`);
+  }
+});
+
 test('workflow handoff skills make terminal ownership explicit', () => {
   const usingSuperpowers = readUtf8(getSkillPath('using-superpowers'));
   assert.doesNotMatch(usingSuperpowers, /brainstorming first, then implementation skills/);

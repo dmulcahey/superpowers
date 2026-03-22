@@ -214,6 +214,27 @@ Before moving on, perform a short Gate F-style confirmation:
 - known risks are documented
 - monitoring or verification expectations are addressed when relevant
 
+### Step 1.95: Protected-Branch Repo-Write Gate
+
+Before executing any completion option that mutates repo state, run the shared repo-safety preflight for the chosen branch-finishing scope:
+
+```bash
+superpowers-repo-safety check --intent write --stage superpowers:finishing-a-development-branch --task-id <current-branch-finish> --write-target branch-finish
+```
+
+- If the helper returns `allowed`, continue with the selected completion path.
+- If it returns `blocked`, name the branch, the stage, and the blocking `failure_class`, then route to either a feature branch / `superpowers:using-git-worktrees` or explicit user approval for this exact completion scope.
+- If the user explicitly approves the protected-branch completion write, run:
+
+```bash
+superpowers-repo-safety approve --stage superpowers:finishing-a-development-branch --task-id <current-branch-finish> --reason "<explicit user approval>" --write-target branch-finish
+superpowers-repo-safety check --intent write --stage superpowers:finishing-a-development-branch --task-id <current-branch-finish> --write-target branch-finish
+```
+
+- Continue only if the re-check returns `allowed`.
+- Before `git merge`, `git push`, or worktree cleanup, re-run the gate with the same task id and the specific target `git-merge`, `git-push`, or `git-worktree-cleanup` before that command.
+- Do not treat a worktree on `main`, `master`, `dev`, or `develop` as safe by itself; the branch must be non-protected or explicitly approved.
+
 ### Step 2: Determine Base Branch
 
 Try platform-aware detection first:

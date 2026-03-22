@@ -147,6 +147,28 @@ Load plan, review critically, execute all tasks in a separate session, request f
 - On the first `begin` for a revision whose plan still says `**Execution Mode:** none`, initialize execution with `--execution-mode superpowers:executing-plans`
 - The approved plan checklist is the execution progress record; do not create or maintain a separate authoritative task tracker.
 
+## Protected-Branch Repo-Write Gate
+
+Before starting any plan step that mutates repo state, run the shared repo-safety preflight for that exact task slice:
+
+```bash
+superpowers-repo-safety check --intent write --stage superpowers:executing-plans --task-id <current-task-slice> --path <repo-relative-path> --write-target execution-task-slice
+```
+
+- Use one stable task id per repo-writing task slice and pass the concrete repo-relative paths when they are known.
+- If the helper returns `allowed`, continue with that task slice.
+- If it returns `blocked`, name the branch, the stage, and the blocking `failure_class`, then route to either a feature branch / `superpowers:using-git-worktrees` or explicit user approval for this exact task slice.
+- If the user explicitly approves the protected-branch write, run:
+
+```bash
+superpowers-repo-safety approve --stage superpowers:executing-plans --task-id <current-task-slice> --reason "<explicit user approval>" --path <repo-relative-path> --write-target execution-task-slice
+superpowers-repo-safety check --intent write --stage superpowers:executing-plans --task-id <current-task-slice> --path <repo-relative-path> --write-target execution-task-slice
+```
+
+- Continue only if the re-check returns `allowed`.
+- If the same task slice also commits, merges, or pushes, re-run the gate with the same task id and the specific target `git-commit`, `git-merge`, or `git-push` before that command.
+- Do not treat a worktree on `main`, `master`, `dev`, or `develop` as safe by itself; the branch must be non-protected or explicitly approved.
+
 ### Step 2: Execute Tasks
 
 For each task:

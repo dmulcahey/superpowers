@@ -125,6 +125,26 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 "$_SUPERPOWERS_ROOT/bin/superpowers-workflow-status" expect --artifact plan --path docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md
 ```
 
+## Protected-Branch Repo-Write Gate
+
+Before writing or updating the plan file on disk, run the shared repo-safety preflight for the exact plan-writing scope:
+
+```bash
+superpowers-repo-safety check --intent write --stage superpowers:writing-plans --task-id <current-plan-write> --path docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md --write-target plan-artifact-write
+```
+
+- If the helper returns `allowed`, continue with the plan write.
+- If it returns `blocked`, name the branch, the stage, and the blocking `failure_class`, then route to either a feature branch / `superpowers:using-git-worktrees` or explicit user approval for this exact plan-writing scope.
+- If the user explicitly approves writing this plan on the current protected branch, run:
+
+```bash
+superpowers-repo-safety approve --stage superpowers:writing-plans --task-id <current-plan-write> --reason "<explicit user approval>" --path docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md --write-target plan-artifact-write
+superpowers-repo-safety check --intent write --stage superpowers:writing-plans --task-id <current-plan-write> --path docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md --write-target plan-artifact-write
+```
+
+- Continue only if the re-check returns `allowed`.
+- If you commit the plan on the same protected branch, re-run the gate for the commit itself with `--write-target git-commit` before `git commit`.
+
 ## Prerequisite Gate
 
 Before writing the plan, inspect the selected spec and validate these exact header lines:

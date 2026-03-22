@@ -58,6 +58,8 @@ require_pattern skills/brainstorming/SKILL.md "Landscape Awareness"
 require_pattern skills/brainstorming/SKILL.md "If the work is sensitive or stealthy, ask one explicit permission question before any external search"
 require_pattern skills/brainstorming/SKILL.md "## Landscape Snapshot"
 require_pattern skills/brainstorming/SKILL.md "### Decision impact"
+require_pattern skills/brainstorming/SKILL.md 'superpowers-repo-safety check --intent write'
+require_pattern skills/brainstorming/SKILL.md 'superpowers-repo-safety approve --stage'
 
 require_description_pattern skills/using-superpowers/SKILL.md "deciding which skill or workflow stage applies"
 require_description_pattern skills/systematic-debugging/SKILL.md "investigating a bug, regression, test failure, or unexpected behavior"
@@ -96,6 +98,7 @@ require_pattern skills/plan-ceo-review/SKILL.md 'Accelerator artifacts must use 
 require_pattern skills/plan-ceo-review/SKILL.md 'Pre-Step 0: Landscape Check'
 require_pattern skills/plan-ceo-review/SKILL.md "reuse the spec's \`Landscape Snapshot\` when it exists and is still relevant"
 require_pattern skills/plan-ceo-review/SKILL.md 'If the refreshed Landscape Check materially changes the approved reasoning, update the spec'"'"'s `Landscape Snapshot` and `Decision impact` before approval'
+require_pattern skills/plan-ceo-review/SKILL.md 'superpowers-repo-safety check --intent write'
 
 require_pattern skills/writing-plans/SKILL.md 'If the spec is missing these lines, or if `**Workflow State:**` is not `CEO Approved`, stop and direct the agent to `superpowers:plan-ceo-review`.'
 require_pattern skills/writing-plans/SKILL.md "**Workflow State:** Draft"
