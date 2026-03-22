@@ -259,35 +259,37 @@ superpowers-session-entry
 - Test: `bash tests/codex-runtime/test-superpowers-plan-execution.sh`
 - Test: `bash tests/codex-runtime/test-superpowers-slug.sh`
 
-- [ ] **Step 1: Add red parity assertions for shared primitives**
+- [x] **Step 1: Add red parity assertions for shared primitives**
 ```bash
 require_pattern tests/codex-runtime/test-superpowers-workflow-status.sh "normalized repo-relative paths"
 require_pattern tests/codex-runtime/test-superpowers-plan-execution.sh "whitespace normalization"
 require_pattern tests/codex-runtime/test-superpowers-slug.sh "branch-safe identifier"
 ```
 
-- [ ] **Step 2: Run the helper parity suites and capture the current baseline**
+- [x] **Step 2: Run the helper parity suites and capture the current baseline**
 Run: `bash tests/codex-runtime/test-superpowers-workflow-status.sh && bash tests/codex-runtime/test-superpowers-plan-execution.sh && bash tests/codex-runtime/test-superpowers-slug.sh`
 Expected: PASS before the refactor so failures after migration are real regressions.
 
-- [ ] **Step 3: Create the shared Bash runtime library**
+- [x] **Step 3: Create the shared Bash runtime library**
 ```bash
 normalize_repo_relative_path() { ... }
 normalize_whitespace_bounded() { ... }
 normalize_identifier_token() { ... }
 ```
 
-- [ ] **Step 4: Move touched existing helpers onto the shared primitives**
+- [x] **Step 4: Move touched existing helpers onto the shared primitives**
 Update `bin/superpowers-workflow-status` and `bin/superpowers-plan-execution` to source the shared Bash library and to keep their existing JSON/error contracts unchanged.
 
-- [ ] **Step 5: Extend the shared PowerShell helper surface**
+- [x] **Step 5: Extend the shared PowerShell helper surface**
 Add PowerShell equivalents for the new normalization primitives to `bin/superpowers-pwsh-common.ps1` so the new wrappers do not grow private implementations. This task owns all shared PowerShell foundation changes needed by later helper wrappers.
 
-- [ ] **Step 6: Re-run the helper parity suites**
+- [x] **Step 6: Re-run the helper parity suites**
 Run: `bash tests/codex-runtime/test-superpowers-workflow-status.sh && bash tests/codex-runtime/test-superpowers-plan-execution.sh && bash tests/codex-runtime/test-superpowers-slug.sh`
 Expected: PASS with no externally visible behavior drift.
 
 - [ ] **Step 7: Commit the shared-runtime-library migration**
+
+  **Execution Note:** Active - Commit the shared-runtime-library migration
 ```bash
 git add bin/superpowers-runtime-common.sh bin/superpowers-pwsh-common.ps1 bin/superpowers-workflow-status bin/superpowers-plan-execution tests/codex-runtime/test-superpowers-workflow-status.sh tests/codex-runtime/test-superpowers-plan-execution.sh tests/codex-runtime/test-superpowers-slug.sh
 git commit -m "refactor: share runtime helper primitives"
