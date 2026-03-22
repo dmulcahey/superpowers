@@ -20,8 +20,10 @@
 ## What Already Exists
 
 - `bin/superpowers-plan-execution` already owns execution-state truth for approved plans and paired execution evidence.
+- `bin/superpowers-runtime-common.sh` and `bin/superpowers-pwsh-common.ps1` already centralize repo-relative path, whitespace, and identifier normalization that new helper surfaces should reuse instead of re-implementing.
 - `skills/writing-plans/SKILL.md.tmpl` and `skills/plan-eng-review/SKILL.md.tmpl` already own the authoring and approval path for implementation plans.
 - `skills/executing-plans/`, `skills/subagent-driven-development/`, and `skills/requesting-code-review/` already own execution and review consumption of approved plan artifacts.
+- `superpowers-repo-safety` already guards repo-writing workflow stages on protected branches, so template edits in this project must preserve those preflights rather than weakening them.
 - `tests/codex-runtime/test-superpowers-plan-execution.sh`, `tests/codex-runtime/test-workflow-sequencing.sh`, `tests/codex-runtime/test-workflow-enhancements.sh`, `tests/codex-runtime/test-runtime-instructions.sh`, and `tests/codex-runtime/skill-doc-contracts.test.mjs` already pin much of the workflow wording and helper behavior this change must preserve.
 - `README.md`, `docs/README.codex.md`, `docs/README.copilot.md`, and `docs/testing.md` already describe the current runtime authority model and test surfaces.
 
@@ -288,6 +290,7 @@ Helpers enforce and compile; they do not approve.
 - Keep packet persistence bounded and derived-only.
 - Keep persisted packets helper-private so stale detection, reuse, and regeneration stay centralized in `superpowers-plan-contract`.
 - Put canonical task-heading and `Files:` parsing in one small shared shell module rather than duplicating structural parser logic across helpers.
+- Reuse the shared normalization primitives already shipped in `bin/superpowers-runtime-common.sh` and `bin/superpowers-pwsh-common.ps1` instead of adding parallel helper-specific path, whitespace, or identifier normalization.
 - Implement bounded retention as helper behavior, not just a documented policy.
 **Open Questions:** none
 
@@ -301,7 +304,7 @@ Helpers enforce and compile; they do not approve.
 - Test: `bash tests/codex-runtime/test-powershell-wrapper-bash-resolution.sh`
 
 - [ ] **Step 1: Implement the shell helper skeleton with explicit subcommands**
-  Add `lint` and `build-task-packet` dispatch, JSON/error emitters, and shared repo-relative path normalization in `bin/superpowers-plan-contract`.
+  Add `lint` and `build-task-packet` dispatch plus JSON/error emitters in `bin/superpowers-plan-contract`, and wire the helper to reuse the shared runtime/common normalization primitives instead of re-implementing them locally.
 
 - [ ] **Step 2: Implement spec and plan parsing for the new contract**
   Add parsing for `Requirement Index`, `Requirement Coverage Matrix`, `Spec Coverage`, `Task Outcome`, `Plan Constraints`, and `Open Questions`, and put canonical `## Task N:` plus `Files:` parsing in `bin/superpowers-plan-structure-common` so both helpers share one structural contract.
@@ -344,6 +347,7 @@ Helpers enforce and compile; they do not approve.
 - Keep `superpowers-plan-execution` focused on execution-state truth; do not move semantic mapping into it.
 - Do not silently preserve `### Task N:` in authoring examples or parser assumptions.
 - Reuse the shared structural parser module rather than introducing a second canonical-task parser.
+- Preserve the existing `superpowers-repo-safety` `plan-artifact-write` and `approval-header-write` preflights while tightening `writing-plans` and `plan-eng-review`.
 **Open Questions:** none
 
 **Files:**
@@ -365,10 +369,10 @@ Helpers enforce and compile; they do not approve.
 - Test: `node --test tests/codex-runtime/skill-doc-contracts.test.mjs`
 
 - [ ] **Step 1: Update the writing-plans template to require the new contract**
-  Change the plan template and guidance to require `Requirement Coverage Matrix`, canonical `## Task N:` headings, `Spec Coverage`, `Task Outcome`, `Plan Constraints`, `Open Questions`, and a pre-handoff `superpowers-plan-contract lint` self-check.
+  Change the plan template and guidance to require `Requirement Coverage Matrix`, canonical `## Task N:` headings, `Spec Coverage`, `Task Outcome`, `Plan Constraints`, `Open Questions`, and a pre-handoff `superpowers-plan-contract lint` self-check without weakening the existing protected-branch repo-safety gate.
 
 - [ ] **Step 2: Update the plan-eng-review template to gate approval on lint**
-  Add the required lint invocation, fail-closed conditions, and explicit review questions around coverage, decisions, non-goals, and file-scope drift.
+  Add the required lint invocation, fail-closed conditions, and explicit review questions around coverage, decisions, non-goals, and file-scope drift while preserving the existing protected-branch approval-header repo-safety preflight.
 
 - [ ] **Step 3: Regenerate the generated skill docs**
   Run `node scripts/gen-skill-docs.mjs` so the checked-in `SKILL.md` files match the template changes.
@@ -416,6 +420,7 @@ Helpers enforce and compile; they do not approve.
 - Keep reviewer prompts explicit about plan deviation versus ordinary correctness gaps.
 - Do not let controllers fall back to freeform semantic summaries when packets are insufficient.
 - Require execution and review consumers to invoke `superpowers-plan-contract build-task-packet` every time; helper-managed cache reuse is allowed, direct packet-file reads are not.
+- Preserve the existing `superpowers-repo-safety` `execution-task-slice` preflights and protected-branch guarantees while changing execution guidance and reviewer prompts.
 **Open Questions:** none
 
 **Files:**
@@ -439,10 +444,10 @@ Helpers enforce and compile; they do not approve.
 - Test: `node --test tests/codex-runtime/skill-doc-contracts.test.mjs`
 
 - [ ] **Step 1: Update same-session execution guidance**
-  Teach `executing-plans` to invoke `superpowers-plan-contract build-task-packet` before each task, treat the returned packet as the exact execution contract for that slice, and rely on the helper for any cache reuse or regeneration.
+  Teach `executing-plans` to invoke `superpowers-plan-contract build-task-packet` before each task, treat the returned packet as the exact execution contract for that slice, rely on the helper for any cache reuse or regeneration, and keep the protected-branch repo-safety checks intact.
 
 - [ ] **Step 2: Update subagent-driven-development guidance**
-  Replace task-text-plus-context dispatch with helper-built packet-backed dispatch, packet-backed answers to subagent questions, and explicit escalation when the packet does not resolve ambiguity.
+  Replace task-text-plus-context dispatch with helper-built packet-backed dispatch, packet-backed answers to subagent questions, and explicit escalation when the packet does not resolve ambiguity, without weakening the existing execution-task-slice repo-safety contract.
 
 - [ ] **Step 3: Tighten implementer and reviewer prompts**
   Rewrite `implementer-prompt.md`, `spec-reviewer-prompt.md`, `code-quality-reviewer-prompt.md`, and `skills/requesting-code-review/code-reviewer.md` so they consume task packets, check file-scope and requirement-scope drift, and distinguish `PLAN_DEVIATION_FOUND` from ordinary gaps.
@@ -491,6 +496,7 @@ Helpers enforce and compile; they do not approve.
 - Update current runtime docs and fixture guidance, not historical approved plans or execution evidence.
 - Keep the public workflow CLI explicitly read-only and non-authoritative in the docs.
 - Include the new helper in runtime-surface validation and release notes.
+- Document the new helper alongside the existing session-entry and repo-safety runtime layers rather than describing it as a replacement for them.
 **Open Questions:** none
 
 **Files:**
@@ -512,7 +518,7 @@ Helpers enforce and compile; they do not approve.
 - Test: `node --test tests/codex-runtime/*.test.mjs`
 
 - [ ] **Step 1: Update README and platform docs for the new helper contract**
-  Document `superpowers-plan-contract` as an internal runtime helper, explain packet-backed planning and review behavior, and restate that `superpowers-workflow` remains the only supported public read-only workflow CLI.
+  Document `superpowers-plan-contract` as an internal runtime helper, explain packet-backed planning and review behavior, restate that `superpowers-workflow` remains the only supported public read-only workflow CLI, and keep the existing `superpowers-session-entry` plus `superpowers-repo-safety` layers visible in the runtime architecture narrative.
 
 - [ ] **Step 2: Update testing and fixture guidance**
   Update `docs/testing.md`, `tests/codex-runtime/test-workflow-enhancements.sh`, `tests/codex-runtime/test-runtime-instructions.sh`, and `tests/codex-runtime/fixtures/workflow-artifacts/README.md` so the new helper suite, packet-backed reviewer wording, fixture family, and runtime-doc references are pinned.

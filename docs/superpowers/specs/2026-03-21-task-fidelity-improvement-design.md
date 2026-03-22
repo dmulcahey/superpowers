@@ -126,6 +126,8 @@ The supported public workflow inspection CLI remains read-only and non-authorita
 
 - `superpowers-workflow-status` already enforces conservative routing from repo-visible approval state.
 - `superpowers-plan-execution` already enforces structural truth for execution progress and evidence.
+- `superpowers-repo-safety` already enforces protected-branch repo-write guarantees for repo-writing workflow stages.
+- `bin/superpowers-runtime-common.sh` and `bin/superpowers-pwsh-common.ps1` already centralize shared path, whitespace, and identifier normalization for Bash and PowerShell helpers.
 - the workflow already treats approved plans as executable contracts, not as brainstorming notes
 - the repo already documents that local helper state is derived and rebuildable
 
@@ -143,15 +145,19 @@ This project should extend existing Superpowers workflow surfaces rather than re
 
 - `superpowers-workflow-status` already derives workflow stage from repo-visible approval artifacts and fails closed on malformed or stale state.
 - `superpowers-plan-execution` already owns execution-state truth for approved plans and paired evidence artifacts.
+- `superpowers-repo-safety` already protects repo-writing workflow stages on protected branches and must remain in force when this project edits planning and execution skills.
 - `writing-plans` already treats plans as executable task contracts with exact files, commands, and ordered steps.
 - `plan-eng-review` already owns the engineering-approval gate and execution handoff.
 - `executing-plans`, `subagent-driven-development`, and `requesting-code-review` already provide the correct execution and review touchpoints for consuming packet-backed context.
+- `bin/superpowers-runtime-common.sh` and `bin/superpowers-pwsh-common.ps1` already provide reusable normalization primitives that the new helper should call instead of re-implementing.
 - `superpowers-workflow` already exists as the supported public read-only workflow inspection CLI and should not be replaced or widened into an approval authority.
 
 The project therefore reuses:
 
 - existing markdown approval truth
 - existing workflow and execution helpers
+- existing shared runtime/common normalization helpers
+- existing protected-branch repo-safety guarantees
 - existing execution and review skill boundaries
 
 The project adds one new derived helper because no existing helper owns semantic traceability across spec, plan, execution handoff, and review.
@@ -371,12 +377,12 @@ Example:
 ```markdown
 ## Requirement Index
 
-- [REQ-001][behavior] When `using-superpowers` first triggers in a session, ask one interactive question before any normal Superpowers work happens.
+- [REQ-001][behavior] When `superpowers-session-entry resolve` finds no valid session decision for the current turn, ask one interactive question before any normal Superpowers work happens.
 - [REQ-002][behavior] Persist the session decision file at `~/.superpowers/session-flags/using-superpowers/$PPID`.
 - [REQ-003][constraint] Valid persisted values are exactly `enabled` and `bypassed`.
-- [DEC-001][decision] Any other persisted value is malformed state, not a third valid mode.
-- [NONGOAL-001][non-goal] Do not add a new public runtime helper just for this session flag.
-- [VERIFY-001][verification] Regression coverage must cover first-trigger ask, bypass persistence, explicit re-entry, and malformed-state fail-closed behavior.
+- [DEC-001][decision] The first-turn session-entry bootstrap is runtime-owned and resolves before the normal `using-superpowers` stack.
+- [NONGOAL-001][non-goal] Do not make `using-superpowers` itself the approval authority for missing or malformed session-entry state.
+- [VERIFY-001][verification] Regression coverage must cover first-trigger ask, bypass persistence, explicit re-entry, malformed-state fail-closed behavior, and the runtime-owned bootstrap boundary.
 ```
 
 Rules:
@@ -459,6 +465,7 @@ Introduce a new helper surface:
 - `bin/superpowers-plan-contract.ps1`
 
 This helper is a validator and packet builder. It is not the approval authority.
+It should reuse the shared normalization primitives already shipped in `bin/superpowers-runtime-common.sh` and `bin/superpowers-pwsh-common.ps1` instead of introducing parallel helper-specific path, whitespace, or identifier normalization.
 
 It owns:
 
@@ -594,6 +601,7 @@ Persistence must use bounded retention and must treat spec or plan revision mism
 - a required `Requirement Coverage Matrix`
 - required `Spec Coverage`, `Task Outcome`, `Plan Constraints`, `Open Questions`, and `Files` blocks on every task
 - a self-check by running `superpowers-plan-contract lint --spec ... --plan ...` before handoff to `plan-eng-review`
+- preservation of the existing `superpowers-repo-safety` protected-branch `plan-artifact-write` preflight when the template is updated
 
 New authoring rule:
 
@@ -626,6 +634,8 @@ Engineering approval must fail closed when lint reports:
 - invalid task heading structure
 - invalid `Files:` block structure
 
+When `plan-eng-review` is updated for this contract, it must keep the existing `superpowers-repo-safety` protected-branch `approval-header-write` preflight and fail-closed behavior intact.
+
 Human review still matters. Engineering review must also answer:
 
 - Does every task preserve the exact approved decisions and non-goals it touches?
@@ -646,6 +656,7 @@ Before starting each task, `executing-plans` must:
 - build the canonical task packet
 - read it in full
 - treat it as the exact task contract for that execution segment
+- preserve the existing `superpowers-repo-safety` protected-branch `execution-task-slice` preflight while adopting packet-backed execution
 
 ### Subagent-Driven-Development
 
@@ -655,6 +666,7 @@ Replace `task text + context` dispatch with verbatim task-packet dispatch:
 - build the task packet for the selected task
 - pass the packet verbatim to implementer and reviewers
 - allow controller-added narrative only for transient logistics such as working directory, branch, or base commit
+- preserve the existing `superpowers-repo-safety` protected-branch `execution-task-slice` preflight while changing dispatch inputs
 
 If a subagent asks a question that the packet already answers, the controller must answer from the packet. If the packet does not answer it, the task is ambiguous and execution must stop or route back to review.
 
