@@ -265,6 +265,29 @@ EOF
   fi
 }
 
+run_negated_skill_request_does_not_trigger_reentry() {
+  local message_file
+  local decision_path
+  local output
+
+  message_file="$(write_message_file negated-skill-request-message.txt <<'EOF'
+Do not use brainstorming for this task.
+EOF
+)"
+  decision_path="$(decision_path_for_key "negated-skill-request")"
+  mkdir -p "$(dirname "$decision_path")"
+  printf 'bypassed\n' > "$decision_path"
+
+  output="$(run_json_command "negated skill request" resolve --message-file "$message_file" --session-key "negated-skill-request")"
+  assert_json_equals "$output" "outcome" "bypassed" "negated skill request"
+  assert_json_equals "$output" "decision_source" "existing_bypassed" "negated skill request"
+  assert_json_equals "$output" "persisted" "true" "negated skill request"
+  if [[ "$(cat "$decision_path")" != "bypassed" ]]; then
+    echo "Expected negated skill request to keep bypassed decision"
+    exit 1
+  fi
+}
+
 run_explicit_reentry_write_failure_is_unpersisted() {
   local message_file
   local decision_path
@@ -338,6 +361,7 @@ run_existing_bypassed_decision
 run_malformed_decision_needs_user_choice
 run_explicit_reentry_rewrites_bypassed_decision
 run_natural_language_skill_request_triggers_reentry
+run_negated_skill_request_does_not_trigger_reentry
 run_explicit_reentry_write_failure_is_unpersisted
 run_record_persists_enabled_choice
 run_record_rejects_invalid_decision

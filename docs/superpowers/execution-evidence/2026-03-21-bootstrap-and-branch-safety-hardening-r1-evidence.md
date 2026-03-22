@@ -621,8 +621,8 @@
 **Invalidation Reason:** Later repair slices changed helper behavior, workflow skill docs, and the supported-entry harness gate, so the previously completed final verification matrix is stale and must be rerun on the current tree before handoff.
 
 #### Attempt 2
-**Status:** Completed
-**Recorded At:** 2026-03-22T02:58:03Z
+**Status:** Invalidated
+**Recorded At:** 2026-03-22T03:10:22Z
 **Execution Source:** superpowers:executing-plans
 **Claim:** Re-ran the full targeted verification matrix on the repaired tree, including fresh Search-Before-Building and using-superpowers routing eval passes.
 **Files:**
@@ -630,6 +630,18 @@
 - docs/superpowers/plans/2026-03-21-bootstrap-and-branch-safety-hardening.md
 **Verification:**
 - Manual inspection only: The deterministic matrix passed for agent-doc and skill-doc freshness, Node runtime suites, runtime-instructions, using-superpowers bypass, session-entry, supported-entry gate, repo-safety, workflow enhancement/sequencing, plan-execution, workflow-status, slug, and the PowerShell wrapper bash-resolution check, which skipped cleanly because no pwsh or powershell binary is installed. Fresh eval controllers also passed with no blocked scenarios: Search-Before-Building evidence root /Users/davidmulcahey/.superpowers/projects/skills-3a93f4639977/search-before-building-contract-r2/run-20260322T025218Z and using-superpowers routing evidence root /Users/davidmulcahey/.superpowers/projects/dmulcahey-superpowers/routing-evals/using-superpowers-routing-r4/run-20260322T025415Z.
+**Invalidation Reason:** Fresh code review found a trust-boundary regression in session-entry re-entry matching, and the follow-up fix changes behavior after the previous final verification matrix.
+
+#### Attempt 3
+**Status:** Completed
+**Recorded At:** 2026-03-22T03:17:09Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Re-ran the full targeted verification matrix on the post-review session-entry fix, including fresh Search-Before-Building and using-superpowers routing eval passes.
+**Files:**
+- docs/superpowers/execution-evidence/2026-03-21-bootstrap-and-branch-safety-hardening-r1-evidence.md
+- docs/superpowers/plans/2026-03-21-bootstrap-and-branch-safety-hardening.md
+**Verification:**
+- Manual inspection only: The deterministic matrix passed for agent-doc and skill-doc freshness, Node runtime suites, runtime-instructions, using-superpowers bypass, session-entry, supported-entry gate, repo-safety, workflow enhancement/sequencing, plan-execution, workflow-status, slug, and the PowerShell wrapper bash-resolution check, which skipped cleanly because no pwsh or powershell binary is installed. Fresh eval controllers also passed with no blocked scenarios: Search-Before-Building evidence root /Users/davidmulcahey/.superpowers/projects/dmulcahey-superpowers/search-before-building-contract-r2/run-20260322T031223Z and using-superpowers routing evidence root /Users/davidmulcahey/.superpowers/projects/dmulcahey-superpowers/routing-evals/using-superpowers-routing-r4/run-20260322T031644Z-rerun.
 **Invalidation Reason:** N/A
 
 ### Task 6 Step 3
@@ -646,10 +658,22 @@
 **Invalidation Reason:** Later repair slices changed helper behavior, workflow skill docs, and the supported-entry harness gate after the previous verification-before-completion attempt, so the completion gate must be rerun on the repaired tree.
 
 #### Attempt 2
-**Status:** Completed
-**Recorded At:** 2026-03-22T02:59:50Z
+**Status:** Invalidated
+**Recorded At:** 2026-03-22T03:17:39Z
 **Execution Source:** superpowers:executing-plans
 **Claim:** Re-ran the completion gate on the repaired tree so the generated docs and runtime regressions are freshly verified immediately before the final commit.
+**Files:**
+- docs/superpowers/execution-evidence/2026-03-21-bootstrap-and-branch-safety-hardening-r1-evidence.md
+- docs/superpowers/plans/2026-03-21-bootstrap-and-branch-safety-hardening.md
+**Verification:**
+- Manual inspection only: Fresh checks passed for generated agent docs, generated skill docs, the Node codex-runtime suite, runtime-instructions, using-superpowers bypass, session-entry, supported-entry gate, repo-safety, workflow enhancement/sequencing, plan-execution, workflow-status, and slug. The PowerShell wrapper bash-resolution check also ran and skipped cleanly because no pwsh or powershell binary is installed in this environment.
+**Invalidation Reason:** The post-review session-entry fix changed shipped behavior after the previous completion-gate attempt, so the final pre-commit verification must be rerun on the patched tree.
+
+#### Attempt 3
+**Status:** Completed
+**Recorded At:** 2026-03-22T03:18:59Z
+**Execution Source:** superpowers:executing-plans
+**Claim:** Re-ran the completion gate after the post-review session-entry fix so the generated docs and runtime regressions are freshly verified before the next commit.
 **Files:**
 - docs/superpowers/execution-evidence/2026-03-21-bootstrap-and-branch-safety-hardening-r1-evidence.md
 - docs/superpowers/plans/2026-03-21-bootstrap-and-branch-safety-hardening.md
@@ -676,8 +700,8 @@
 **Invalidation Reason:** Later repair slices changed helper behavior, workflow docs, tests, and execution evidence after the previous final commit checkpoint, so the final commit step must be rerun on the repaired tree.
 
 #### Attempt 2
-**Status:** Completed
-**Recorded At:** 2026-03-22T03:01:31Z
+**Status:** Invalidated
+**Recorded At:** 2026-03-22T03:19:23Z
 **Execution Source:** superpowers:executing-plans
 **Claim:** Committed the repaired runtime, workflow-doc, and final-verification changes as 1203064.
 **Files:**
@@ -685,12 +709,12 @@
 - docs/superpowers/plans/2026-03-21-bootstrap-and-branch-safety-hardening.md
 **Verification:**
 - Manual inspection only: Verified HEAD is commit 1203064 immediately after staging the repaired helper, test, workflow-doc, and execution-artifact updates, and git status --short was clean before recording this step.
-**Invalidation Reason:** N/A
+**Invalidation Reason:** The post-review session-entry negation fix and refreshed execution evidence changed the final commit boundary after the previous handoff commit.
 
 ### Task 6 Step 5
 #### Attempt 1
-**Status:** Completed
-**Recorded At:** 2026-03-22T03:01:58Z
+**Status:** Invalidated
+**Recorded At:** 2026-03-22T03:10:02Z
 **Execution Source:** superpowers:executing-plans
 **Claim:** Synced the approved plan artifact after the repaired final verification pass so workflow state is ready for post-implementation review.
 **Files:**
@@ -698,4 +722,4 @@
 - docs/superpowers/plans/2026-03-21-bootstrap-and-branch-safety-hardening.md
 **Verification:**
 - Manual inspection only: bin/superpowers-workflow-status sync --artifact plan --path docs/superpowers/plans/2026-03-21-bootstrap-and-branch-safety-hardening.md returned implementation_ready with the expected spec and plan paths in the workflow manifest, leaving the branch ready for refreshed code review and release/finish handoff.
-**Invalidation Reason:** N/A
+**Invalidation Reason:** Fresh code review found a trust-boundary regression in session-entry re-entry matching, and the follow-up fix changes behavior after the previous final verification and handoff.
