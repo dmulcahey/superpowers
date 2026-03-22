@@ -243,9 +243,17 @@ require_pattern skills/plan-eng-review/accelerated-reviewer-prompt.md "Do not wr
 require_pattern skills/plan-eng-review/accelerated-reviewer-prompt.md "Escalate any high-judgment issue individually."
 require_pattern docs/README.codex.md 'Accelerated review is an opt-in branch inside `plan-ceo-review` and `plan-eng-review`, not a separate workflow stage.'
 require_pattern README.md 'superpowers-session-entry'
+require_pattern README.md 'superpowers-repo-safety'
+require_pattern README.md 'protected branches'
 require_pattern docs/README.codex.md 'superpowers-session-entry'
+require_pattern docs/README.codex.md 'superpowers-repo-safety'
+require_pattern docs/README.codex.md 'protected branches'
 require_pattern docs/README.copilot.md 'superpowers-session-entry'
+require_pattern docs/README.copilot.md 'superpowers-repo-safety'
+require_pattern docs/README.copilot.md 'protected branches'
 require_pattern docs/testing.md 'bash tests/codex-runtime/test-superpowers-session-entry-gate.sh'
+require_pattern docs/testing.md 'bash tests/codex-runtime/test-superpowers-repo-safety.sh'
+require_pattern docs/testing.md 'protected-branch repo-write guarantees'
 require_pattern docs/testing.md 'The routing gate above is complementary coverage'
 require_pattern docs/README.codex.md "Only the user can initiate accelerated review, and section approval plus final approval remain human-owned even when the review uses reviewer subagents and persisted section packets."
 require_pattern docs/README.codex.md 'requires the `document-release` handoff before workflow-routed branch completion'

@@ -159,6 +159,12 @@ Superpowers ships session-entry runtime helpers:
 
 Supported entry paths use this helper to resolve `enabled`, `bypassed`, or `needs_user_choice` before the normal `using-superpowers` stack starts. Missing or malformed decision state fails closed to `needs_user_choice`; `using-superpowers` documents that contract but does not own it by itself.
 
+Superpowers ships protected-branch repo-safety helpers:
+- `bin/superpowers-repo-safety` (Bash)
+- `bin/superpowers-repo-safety.ps1` (PowerShell wrapper)
+
+Generated repo-writing workflow skills use this helper to block repo writes on protected branches by default. Spec writes, plan writes, approval-header edits, release-doc updates, execution task slices, and branch-finishing commands must either run on a non-protected branch or carry an explicit task-scoped approval that passes the helper's re-check.
+
 Superpowers ships a supported public workflow inspection surface:
 - `bin/superpowers-workflow` (Bash)
 - `bin/superpowers-workflow.ps1` (PowerShell wrapper)
